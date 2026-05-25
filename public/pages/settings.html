@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Settings</title>
+  <meta name="description" content="Manage your profile, sections, bills, PIN and month-end rollover.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .settings-section {
+      margin-bottom: 28px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--slate-100);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--transition);
+      text-decoration: none;
+      color: inherit;
+    }
+    .settings-row:hover { background: var(--slate-50); }
+    .settings-row-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+    .settings-row-left {
+      display: flex; align-items: center; flex: 1; min-width: 0;
+    }
+    .settings-row-title { font-weight: 600; font-size: 14px; color: var(--slate-800); }
+    .settings-row-subtitle { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
+    .settings-arrow { color: var(--slate-300); font-size: 18px; flex-shrink: 0; }
+
+    /* Danger zone */
+    .danger-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--red-light);
+      border-radius: 12px;
+      border: 1px solid rgba(239,68,68,0.15);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .danger-row:hover { background: #fee2e2; }
+
+    /* Profile avatar */
+    .profile-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), #f59e0b);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700; font-size: 22px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    /* Sheet inputs */
+    .sheet-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate-500);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <div class="dash-header" style="padding:20px 20px 16px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="profile-avatar" id="profile-avatar">R</div>
+      <div>
+        <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;" id="profile-name">Loading…</div>
+        <div style="font-size:12px;color:var(--slate-500);" id="profile-income">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-content">
+
+      <!-- Profile -->
+      <div class="settings-section">
+        <div class="label-sm mb-12">PROFILE</div>
+        <div class="settings-row" id="row-edit-profile">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:var(--orange-light);">✏️</div>
+            <div>
+              <div class="settings-row-title">Edit Name</div>
+              <div class="settings-row-subtitle" id="row-name-sub">—</div>
+            </div>
+          </div>
+          <span class="settings-arrow">›</span>
+        </div>
+        <div class="settings-row" id="row-change-pin">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:var(--slate-100);">🔒</div>
+            <div>
+              <div class="settings-row-title">Change PIN</div>
+              <div class="settings-row-subtitle">Update your 4-digit payment PIN</div>
+            </div>
+          </div>
+          <span class="settings-arrow">›</span>
+        </div>
+      </div>
+
+      <!-- Sections -->
+      <div class="settings-section">
+        <div class="label-sm mb-12">SECTIONS & BILLS</div>
+        <div id="sections-settings-list">
+          <!-- injected by JS -->
+        </div>
+        <button class="btn btn-ghost" id="btn-add-section"
+          style="border:1.5px dashed var(--orange);border-radius:12px;width:100%;margin-top:4px;padding:12px;font-size:13px;">
+          + Add Section
+        </button>
+        <div id="bills-settings-list" style="margin-top:16px;">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- Month End -->
+      <div class="settings-section">
+        <div class="label-sm mb-12">MONTH-END</div>
+        <div class="settings-row" id="row-month-end">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:var(--green-light);">🔄</div>
+            <div>
+              <div class="settings-row-title">Month-End Rollover</div>
+              <div class="settings-row-subtitle">Reset sections and sweep remaining budget to savings</div>
+            </div>
+          </div>
+          <span class="settings-arrow">›</span>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="settings-section">
+        <div class="label-sm mb-12">DANGER ZONE</div>
+        <div class="danger-row" id="row-reset">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="settings-row-icon" style="background:var(--red-light);margin-right:0;">🗑️</div>
+            <div>
+              <div style="font-weight:600;font-size:14px;color:var(--red);">Reset App</div>
+              <div style="font-size:11px;color:var(--red);opacity:0.7;">Erase all data and start fresh</div>
+            </div>
+          </div>
+          <span style="color:var(--red);font-size:18px;">›</span>
+        </div>
+      </div>
+
+      <div style="height:8px;"></div>
+      <div style="text-align:center;font-size:11px;color:var(--slate-300);padding-bottom:12px;">
+        Splitr — Your money, divided your way
+      </div>
+
+    </div><!-- /.page-content -->
+
+  </div><!-- /.page -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="/pages/dashboard.html" class="nav-item">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </a>
+    <a href="/pages/payment.html" class="nav-item">
+      <span class="nav-icon">💳</span><span>Pay</span>
+    </a>
+    <a href="/pages/savings.html" class="nav-item">
+      <span class="nav-icon">🫙</span><span>Savings</span>
+    </a>
+    <a href="/pages/settings.html" class="nav-item active">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- Edit Name Sheet -->
+<div class="overlay" id="name-overlay">
+  <div class="bottom-sheet">
+    <h3 style="margin-bottom:20px;">Edit Name</h3>
+    <div class="sheet-label">Your name</div>
+    <input type="text" class="input" id="inp-new-name" placeholder="e.g. Rahul Verma" autocomplete="name" style="margin-bottom:16px;">
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-name-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-name-save" style="flex:2;">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change PIN Sheet -->
+<div class="overlay" id="pin-overlay">
+  <div class="bottom-sheet">
+    <h3 style="margin-bottom:20px;">Change PIN</h3>
+    <div class="sheet-label" style="margin-bottom:6px;">Current PIN</div>
+    <div class="pin-input-row" id="current-pin-row" style="margin-bottom:20px;">
+      <input type="password" maxlength="1" class="pin-box" data-row="current" data-idx="0" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="current" data-idx="1" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="current" data-idx="2" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="current" data-idx="3" inputmode="numeric">
+    </div>
+    <div class="sheet-label" style="margin-bottom:6px;">New PIN</div>
+    <div class="pin-input-row" id="new-pin-row" style="margin-bottom:20px;">
+      <input type="password" maxlength="1" class="pin-box" data-row="new" data-idx="0" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="new" data-idx="1" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="new" data-idx="2" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="new" data-idx="3" inputmode="numeric">
+    </div>
+    <div class="sheet-label" style="margin-bottom:6px;">Confirm New PIN</div>
+    <div class="pin-input-row" id="confirm-pin-row" style="margin-bottom:12px;">
+      <input type="password" maxlength="1" class="pin-box" data-row="confirm" data-idx="0" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="confirm" data-idx="1" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="confirm" data-idx="2" inputmode="numeric">
+      <input type="password" maxlength="1" class="pin-box" data-row="confirm" data-idx="3" inputmode="numeric">
+    </div>
+    <div id="pin-err" class="hidden" style="color:var(--red);font-size:12px;text-align:center;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-pin-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-pin-save" style="flex:2;">Update PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Confirm Sheet -->
+<div class="overlay" id="reset-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
+      <h3 style="color:var(--red);margin-bottom:6px;">Reset Everything?</h3>
+      <p style="font-size:13px;color:var(--slate-500);line-height:1.6;">
+        This will permanently erase all your data — sections, transactions, bills, and savings. <strong>This cannot be undone.</strong>
+      </p>
+    </div>
+    <p style="font-size:13px;color:var(--slate-600);margin-bottom:4px;">Type <strong>RESET</strong> to confirm:</p>
+    <input type="text" class="input" id="reset-confirm-input" placeholder='Type "RESET"' autocomplete="off" style="margin-bottom:16px;text-align:center;font-weight:700;letter-spacing:2px;">
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-reset-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-danger" id="btn-reset-confirm" disabled style="flex:2;background:var(--red);color:#fff;">Reset App</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Section Sheet -->
+<div class="overlay" id="add-section-overlay">
+  <div class="bottom-sheet" style="max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <h3 style="margin-bottom:4px;">New Section</h3>
+    <p style="font-size:13px;color:var(--slate-400);margin-bottom:16px;">Sections are budget envelopes you spend from.</p>
+
+    <div class="sheet-label">Section name</div>
+    <input type="text" class="input" id="new-sec-name" placeholder="e.g. Entertainment" autocomplete="off" style="margin-bottom:14px;">
+
+    <div class="sheet-label" style="margin-bottom:8px;">Choose an emoji</div>
+    <div id="new-sec-emoji-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;"></div>
+
+    <div class="sheet-label">Monthly budget</div>
+    <div style="position:relative;margin-bottom:4px;">
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--slate-400);">₹</span>
+      <input type="number" class="input" id="new-sec-budget" placeholder="e.g. 5000" style="padding-left:28px;" min="1">
+    </div>
+    <div id="new-sec-err" class="hidden" style="color:var(--red);font-size:12px;margin-top:6px;margin-bottom:6px;"></div>
+
+    <div style="display:flex;gap:10px;margin-top:16px;padding-bottom:4px;">
+      <button class="btn btn-secondary" id="btn-add-sec-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-add-sec-save" style="flex:2;">Add Section</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/settings.js"></script>
+</body>
+</html>

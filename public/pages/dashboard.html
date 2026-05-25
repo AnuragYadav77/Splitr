@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Dashboard</title>
+  <meta name="description" content="Your budget dashboard — track sections, payments and savings.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2 id="greeting" style="font-size:20px;margin-bottom:2px;">Hi there 👋</h2>
+        <div id="today-date" style="font-size:12px;color:var(--slate-400);"></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--slate-400);">Total Balance</div>
+        <div id="total-balance" style="font-size:13px;font-weight:600;color:var(--slate-600);">₹—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="page" id="page-content">
+    <div class="page-content" style="padding-top:16px;">
+
+      <!-- Sections -->
+      <div class="label-sm mb-12">YOUR SECTIONS</div>
+      <div class="sections-grid" id="sections-grid">
+        <!-- section cards injected by JS -->
+      </div>
+
+      <!-- Fixed Bills -->
+      <div id="bills-card-wrap" class="hidden" style="margin-top:20px;">
+        <div class="label-sm mb-12">FIXED BILLS</div>
+        <div class="card" id="bills-card" style="padding:12px 16px;"></div>
+      </div>
+
+      <!-- Savings Jar -->
+      <div style="margin-top:20px;">
+        <div class="label-sm mb-12">SAVINGS</div>
+        <div class="card" id="savings-card" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px;">
+          <div style="font-size:36px;">🫙</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;color:var(--slate-500);margin-bottom:2px;">Savings Jar</div>
+            <div id="savings-amount" style="font-family:'Poppins',sans-serif;font-weight:700;font-size:22px;color:var(--green);">₹—</div>
+          </div>
+          <div style="color:var(--slate-300);font-size:18px;">›</div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div style="margin-top:24px;margin-bottom:8px;">
+        <div class="label-sm mb-12">RECENT</div>
+        <div id="tx-list"></div>
+        <div id="tx-empty" class="hidden" style="text-align:center;padding:24px;color:var(--slate-300);font-size:13px;">
+          No transactions yet. Make your first payment! 👆
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PAY Button (sticky above nav) -->
+    <div class="pay-fab">
+      <a href="/pages/payment.html" id="pay-btn"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--orange);color:#fff;border-radius:14px;font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;text-decoration:none;box-shadow:0 6px 24px rgba(249,115,22,0.4);transition:all 0.2s ease;">
+        PAY &nbsp;↑
+      </a>
+    </div>
+
+  </div><!-- /.page -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="/pages/dashboard.html" class="nav-item active">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </a>
+    <a href="/pages/payment.html" class="nav-item">
+      <span class="nav-icon">💳</span><span>Pay</span>
+    </a>
+    <a href="/pages/savings.html" class="nav-item">
+      <span class="nav-icon">🫙</span><span>Savings</span>
+    </a>
+    <a href="/pages/settings.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </a>
+  </nav>
+
+</div>
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Get Started</title>
+  <meta name="description" content="Set up your smart budgeting sections and take control of your UPI spending.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { align-items: flex-start; }
+    .app-shell { min-height: 100dvh; }
+    .onboarding-wrap { padding-bottom: 32px; }
+    .step { display: none; }
+    .step.active { display: flex; flex-direction: column; flex: 1; }
+    .big-amount-input {
+      font-size: 32px; font-family: 'Poppins', sans-serif; font-weight: 700;
+      border: none; border-bottom: 3px solid var(--orange);
+      background: transparent; width: 100%; outline: none;
+      color: var(--slate-800); padding: 8px 0; text-align: center;
+    }
+    .bill-item-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--slate-50); border-radius:12px; border:1px solid var(--slate-100); margin-bottom:8px; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="onboarding-wrap" id="onboarding">
+
+    <!-- STEP 0: Welcome -->
+    <div class="step active" id="step-0">
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; padding:20px 0;">
+        <div style="font-size:72px; margin-bottom:16px;">💳</div>
+        <div class="welcome-logo">Splitr</div>
+        <div class="welcome-tagline">Your money, divided your way</div>
+        <p style="color:var(--slate-500); font-size:14px; line-height:1.7; margin-bottom:32px;">
+          Every payment you make is tagged to a <strong>Section</strong> — a budget category you create yourself.
+          See your remaining balance the moment you pay, and never overspend again.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <button class="btn btn-secondary" id="btn-demo" style="border:2px dashed var(--orange); background:var(--orange-light); color:var(--orange);">
+            ⚡ Load Demo Account
+          </button>
+          <button class="btn btn-primary" id="btn-getstarted">Get Started →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1: Name + Income -->
+    <div class="step" id="step-1">
+      <div class="step-indicator" id="indicator-1"></div>
+      <h2 style="margin-bottom:6px;">What's your name?</h2>
+      <p class="text-muted" style="margin-bottom:24px; font-size:13px;">We'll personalise your dashboard.</p>
+      <input type="text" class="input" id="inp-name" placeholder="e.g. Rahul Verma" autocomplete="name" style="margin-bottom:20px;">
+
+      <h2 style="margin-bottom:6px;">Monthly Income</h2>
+      <p class="text-muted" style="margin-bottom:16px; font-size:13px;">This helps us track how much you've allocated.</p>
+      <div style="position:relative;">
+        <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:18px; font-weight:700; color:var(--slate-400);">₹</span>
+        <input type="number" class="input" id="inp-income" placeholder="45000" min="1" style="padding-left:32px; font-size:18px; font-weight:600;">
+      </div>
+      <div id="income-err" class="hidden" style="color:var(--red); font-size:12px; margin-top:6px;">Please enter a valid income greater than ₹0.</div>
+      <div style="margin-top:auto; padding-top:32px;">
+        <button class="btn btn-primary" id="btn-step1-next">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Create Sections -->
+    <div class="step" id="step-2">
+      <div class="step-indicator" id="indicator-2"></div>
+      <h2 style="margin-bottom:6px;">Create Your Sections</h2>
+      <p class="text-muted" style="margin-bottom:20px; font-size:13px;">Sections are budget categories you name. Every payment comes from one of them. Once a section's budget is gone, no more spending from it until next month.</p>
+
+      <div id="sections-list"></div>
+      <div id="section-inline-form" class="hidden inline-form">
+        <div style="font-size:13px; font-weight:600; color:var(--slate-600); margin-bottom:10px;">New Section</div>
+        <input type="text" class="input" id="sec-name" placeholder="Section name (e.g. Food)" style="margin-bottom:8px;">
+        <div style="font-size:12px; color:var(--slate-500); margin-bottom:6px;">Choose an emoji:</div>
+        <div class="emoji-grid" id="emoji-grid"></div>
+        <div style="position:relative; margin-top:8px;">
+          <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:700; color:var(--slate-400);">₹</span>
+          <input type="number" class="input" id="sec-budget" placeholder="Monthly budget" style="padding-left:24px;">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn btn-secondary btn-sm" id="btn-sec-cancel" style="width:auto; flex:1;">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="btn-sec-add" style="flex:2;">Add Section</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btn-show-sec-form" style="border:1.5px dashed var(--orange); border-radius:12px; width:100%; margin-top:4px;">+ Add Section</button>
+
+      <div id="allocated-bar" class="allocated-bar" style="margin-top:12px;"></div>
+      <div id="sec-err" class="hidden" style="color:var(--red); font-size:12px; margin-top:6px;"></div>
+      <div style="margin-top:16px; padding-bottom:4px;">
+        <button class="btn btn-primary" id="btn-step2-next">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Fixed Bills -->
+    <div class="step" id="step-3">
+      <div class="step-indicator" id="indicator-3"></div>
+      <h2 style="margin-bottom:6px;">Fixed Bills</h2>
+      <p class="text-muted" style="margin-bottom:20px; font-size:13px;">Add recurring expenses like rent and EMIs. These are tracked separately from your sections. This step is optional.</p>
+
+      <div id="bills-list"></div>
+      <div id="bill-inline-form" class="hidden inline-form">
+        <div style="font-size:13px; font-weight:600; color:var(--slate-600); margin-bottom:10px;">New Bill</div>
+        <input type="text" class="input" id="bill-name" placeholder="Bill name (e.g. Rent)" style="margin-bottom:8px;">
+        <div style="position:relative; margin-bottom:8px;">
+          <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:700; color:var(--slate-400);">₹</span>
+          <input type="number" class="input" id="bill-amount" placeholder="Amount" style="padding-left:24px;">
+        </div>
+        <input type="number" class="input" id="bill-due" placeholder="Due day (1–31)" min="1" max="31">
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn btn-secondary btn-sm" id="btn-bill-cancel" style="width:auto; flex:1;">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="btn-bill-add" style="flex:2;">Add Bill</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btn-show-bill-form" style="border:1.5px dashed var(--orange); border-radius:12px; width:100%; margin-top:4px;">+ Add Fixed Bill</button>
+      <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
+        <button class="btn btn-primary" id="btn-step3-next">Continue →</button>
+        <button class="btn btn-ghost" id="btn-step3-skip" style="color:var(--slate-400);">Skip (no fixed bills)</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Set PIN -->
+    <div class="step" id="step-4">
+      <div class="step-indicator" id="indicator-4"></div>
+      <h2 style="margin-bottom:6px;">Set Your Payment PIN</h2>
+      <p class="text-muted" style="margin-bottom:32px; font-size:13px;">You'll enter this before every payment. Keep it memorable but private.</p>
+      <div style="margin-bottom:24px;">
+        <div style="font-size:13px; font-weight:600; color:var(--slate-600); margin-bottom:12px;">Set PIN</div>
+        <div class="pin-input-row" id="pin-set-row">
+          <input type="password" maxlength="1" class="pin-box" data-idx="0" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="1" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="2" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="3" inputmode="numeric">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--slate-600); margin-bottom:12px;">Confirm PIN</div>
+        <div class="pin-input-row" id="pin-confirm-row">
+          <input type="password" maxlength="1" class="pin-box" data-idx="0" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="1" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="2" inputmode="numeric">
+          <input type="password" maxlength="1" class="pin-box" data-idx="3" inputmode="numeric">
+        </div>
+      </div>
+      <div id="pin-err" class="hidden" style="color:var(--red); font-size:12px; margin-top:12px;"></div>
+      <div style="margin-top:auto; padding-top:32px;">
+        <button class="btn btn-primary" id="btn-step4-next">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Summary -->
+    <div class="step" id="step-5">
+      <div class="step-indicator" id="indicator-5"></div>
+      <h2 style="margin-bottom:4px;">All Set! 🎉</h2>
+      <p class="text-muted" style="margin-bottom:20px; font-size:13px;">Here's your budget summary. Confirm to start tracking.</p>
+      <div id="summary-content"></div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" id="btn-confirm" style="font-size:16px; padding:16px;">
+          Confirm & Start →
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script type="module" src="/js/onboarding.js"></script>
+</body>
+</html>

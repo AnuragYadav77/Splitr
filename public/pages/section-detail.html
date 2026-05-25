@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Section Detail</title>
+  <meta name="description" content="View spending details and transaction history for this section.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pace-box {
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 13px;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+    .pace-good { background: var(--green-light); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .pace-warn { background: var(--amber-light); color: #92400e; border: 1px solid rgba(234,179,8,0.2); }
+
+    .delete-confirm-input {
+      width: 100%; padding: 12px; border: 2px solid var(--red);
+      border-radius: 8px; font-size: 14px; outline: none;
+      font-family: 'Inter', sans-serif; margin-top: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="page-header">
+    <button class="back-btn" id="back-btn">←</button>
+    <h2 id="section-title" style="font-size:17px;">Section</h2>
+  </div>
+
+  <div class="page">
+    <div class="page-content">
+
+      <!-- Section Hero -->
+      <div style="text-align:center;padding:20px 0 16px;" id="section-hero">
+        <div id="hero-emoji" style="font-size:56px;line-height:1;margin-bottom:10px;"></div>
+        <h1 id="hero-name" style="font-size:22px;margin-bottom:16px;"></h1>
+
+        <!-- Circular progress -->
+        <div class="circular-progress" id="circular-prog">
+          <svg viewBox="0 0 120 120">
+            <circle class="circular-bg" cx="60" cy="60" r="52"/>
+            <circle class="circular-fill" id="circ-fill" cx="60" cy="60" r="52"
+              stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+          </svg>
+          <div class="circular-center">
+            <div id="circ-pct" style="font-size:24px;"></div>
+            <div style="font-size:10px;color:var(--slate-400);font-family:'Inter',sans-serif;font-weight:500;">remaining</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-row" style="margin-top:8px;">
+        <div class="stat-box">
+          <div class="stat-label">Budget</div>
+          <div class="stat-value" id="stat-budget">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Spent</div>
+          <div class="stat-value text-red" id="stat-spent">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Remaining</div>
+          <div class="stat-value text-green" id="stat-remaining">—</div>
+        </div>
+      </div>
+
+      <!-- Pace indicator -->
+      <div id="pace-box" class="pace-box pace-good hidden"></div>
+
+      <!-- Transaction history -->
+      <div style="margin-top:24px;">
+        <div class="label-sm mb-12">TRANSACTION HISTORY</div>
+        <div id="tx-history">
+          <div style="text-align:center;padding:32px;color:var(--slate-300);font-size:13px;" id="tx-empty">No transactions yet in this section.</div>
+        </div>
+      </div>
+
+      <!-- Delete Section -->
+      <div style="margin-top:32px;padding-bottom:12px;">
+        <button class="btn btn-danger" id="btn-delete-section">Delete This Section</button>
+      </div>
+
+    </div>
+
+  </div><!-- /.page -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="/pages/dashboard.html" class="nav-item">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </a>
+    <a href="/pages/payment.html" class="nav-item">
+      <span class="nav-icon">💳</span><span>Pay</span>
+    </a>
+    <a href="/pages/savings.html" class="nav-item">
+      <span class="nav-icon">🫙</span><span>Savings</span>
+    </a>
+    <a href="/pages/settings.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="overlay" id="delete-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">🗑️</div>
+      <h3 style="color:var(--red);margin-bottom:6px;">Delete Section?</h3>
+      <p id="delete-msg" style="font-size:13px;color:var(--slate-500);line-height:1.6;"></p>
+    </div>
+    <p style="font-size:13px;color:var(--slate-600);margin-bottom:4px;">Type <strong>Delete</strong> to confirm:</p>
+    <input type="text" class="delete-confirm-input" id="delete-confirm-input" placeholder='Type "Delete"' autocomplete="off">
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btn-delete-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-danger" id="btn-delete-confirm" disabled style="flex:2;">Delete Section</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/sections.js"></script>
+</body>
+</html>

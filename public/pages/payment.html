@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Pay</title>
+  <meta name="description" content="Make a UPI payment from your budget sections.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pay-step { display: none; flex-direction: column; flex: 1; padding: 20px; }
+    .pay-step.active { display: flex; }
+
+    .pay-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 20px 20px 0; flex-shrink: 0;
+    }
+
+    .amount-display {
+      font-family: 'Poppins', sans-serif;
+      font-size: 52px; font-weight: 700;
+      color: var(--slate-800); text-align: center;
+      letter-spacing: -2px;
+    }
+    .amount-input-wrap {
+      display: flex; align-items: center; justify-content: center;
+      border-bottom: 3px solid var(--orange); padding-bottom: 8px;
+    }
+    .amount-prefix { font-size: 32px; font-weight: 700; color: var(--slate-400); margin-right: 4px; }
+    #inp-amount {
+      font-size: 48px; font-family: 'Poppins', sans-serif; font-weight: 700;
+      border: none; outline: none; background: transparent; width: 180px;
+      text-align: center; color: var(--slate-800);
+    }
+    #inp-amount::placeholder { color: var(--slate-200); }
+
+    .section-grid-2col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+
+    .confirmation-nudge {
+      border-left: 4px solid var(--orange);
+      background: var(--orange-light);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .confirmation-nudge.danger {
+      border-color: var(--red); background: var(--red-light);
+    }
+    .confirmation-nudge.warning {
+      border-color: var(--amber); background: var(--amber-light);
+    }
+
+    /* PIN overlay */
+    .pin-overlay-inner {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 28px; width: 100%;
+    }
+    .pin-title { color: #fff; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 18px; }
+    .pin-subtitle { color: var(--slate-400); font-size: 13px; margin-top: -20px; }
+    .pin-error { color: var(--red); font-size: 13px; height: 20px; }
+
+    /* Success */
+    .success-section-badge {
+      background: var(--slate-50); border-radius: 12px;
+      padding: 12px 16px; text-align: center; margin: 16px 0;
+    }
+
+    /* Emergency bottom sheet */
+    .emergency-input {
+      width: 100%; padding: 12px; border: 2px solid var(--red);
+      border-radius: 8px; font-size: 14px; outline: none;
+      font-family: 'Inter', sans-serif; margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header (shared) -->
+  <div class="pay-header" id="pay-header">
+    <button class="back-btn" id="back-btn">←</button>
+    <h2 style="font-size:17px;" id="pay-step-title">Scan & Pay</h2>
+  </div>
+
+  <!-- STEP 1: QR / Merchant -->
+  <div class="pay-step active" id="pstep-1">
+    <!-- QR Scanner -->
+    <div style="text-align:center; margin: 24px 0 20px;">
+      <div class="qr-scanner" id="qr-box">
+        <div class="qr-corner tl"></div>
+        <div class="qr-corner tr"></div>
+        <div class="qr-corner bl"></div>
+        <div class="qr-corner br"></div>
+        <div class="scan-line"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" id="qr-center">
+          <div style="font-size:13px;color:var(--slate-400);">Scanning…</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--slate-400);margin-top:10px;">Point at any QR code</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="flex:1;height:1px;background:var(--slate-100);"></div>
+      <span style="font-size:12px;color:var(--slate-400);">or enter manually</span>
+      <div style="flex:1;height:1px;background:var(--slate-100);"></div>
+    </div>
+
+    <input type="text" class="input" id="inp-merchant" placeholder="UPI ID or merchant name" style="margin-bottom:12px;" autocomplete="off">
+
+    <div id="merchant-detected" class="hidden" style="background:var(--green-light);border:1.5px solid var(--green);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">✅</span>
+      <div>
+        <div style="font-size:12px;color:var(--slate-400);">Merchant detected</div>
+        <div id="detected-name" style="font-weight:700;font-size:15px;color:var(--slate-800);"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;">
+      <button class="btn btn-primary" id="btn-p1-continue" disabled>Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Amount -->
+  <div class="pay-step" id="pstep-2">
+    <div style="text-align:center;margin-bottom:8px;font-size:13px;color:var(--slate-400);" id="amt-merchant-label">Paying to:</div>
+    <div style="text-align:center;font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;color:var(--slate-800);margin-bottom:32px;" id="amt-merchant-name"></div>
+
+    <div class="amount-input-wrap">
+      <div class="amount-prefix">₹</div>
+      <input type="number" id="inp-amount" placeholder="0" min="1" autofocus>
+    </div>
+    <div id="amt-err" class="hidden" style="color:var(--red);font-size:12px;text-align:center;margin-top:8px;">Please enter a valid amount.</div>
+
+    <div style="margin-top:auto;">
+      <button class="btn btn-primary" id="btn-p2-continue">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Select Section -->
+  <div class="pay-step" id="pstep-3" style="overflow-y:auto;">
+    <h2 style="margin-bottom:4px;">Pay from which section?</h2>
+    <p style="font-size:13px;color:var(--slate-400);margin-bottom:16px;" id="p3-subtitle">Select a section budget</p>
+
+    <div class="section-grid-2col" id="section-select-grid">
+      <!-- injected by JS -->
+    </div>
+
+    <div style="text-align:center;margin-top:12px;">
+      <button class="btn btn-ghost" id="btn-emergency" style="font-size:12px;color:var(--slate-400);">
+        Section finished? Use Emergency Override →
+      </button>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" id="btn-p3-continue" disabled>Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Confirmation -->
+  <div class="pay-step" id="pstep-4">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:13px;color:var(--slate-400);margin-bottom:4px;" id="conf-merchant-label">Paying to</div>
+      <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:22px;color:var(--slate-800);" id="conf-merchant"></div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:8px;">
+      <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:48px;color:var(--slate-900);letter-spacing:-2px;" id="conf-amount"></div>
+    </div>
+    <div style="text-align:center;font-size:13px;color:var(--slate-500);margin-bottom:8px;" id="conf-section-from"></div>
+
+    <div id="conf-nudge" class="confirmation-nudge"></div>
+    <div id="conf-block" class="hidden confirmation-nudge danger" style="margin-top:0;">
+      <div style="font-weight:600;margin-bottom:4px;">❌ Insufficient budget</div>
+      <div id="conf-block-msg"></div>
+      <button class="btn btn-secondary btn-sm" id="btn-change-section" style="margin-top:10px;width:auto;padding:8px 16px;">Change Section</button>
+    </div>
+
+    <div style="margin-top:auto;">
+      <button class="btn btn-primary" id="btn-enter-pin" style="font-size:15px;">
+        🔒 Enter PIN to Pay
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Success -->
+  <div class="pay-step" id="pstep-5" style="align-items:center;justify-content:center;text-align:center;">
+    <div class="checkmark-circle" style="margin-bottom:20px;">
+      <svg class="checkmark-svg" viewBox="0 0 40 40">
+        <path class="checkmark-path" d="M8 20 L17 29 L32 11"/>
+      </svg>
+    </div>
+    <h2 style="color:var(--green);margin-bottom:8px;">Payment Successful</h2>
+    <div style="font-size:15px;font-weight:700;color:var(--slate-800);margin-bottom:4px;" id="succ-merchant"></div>
+    <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:36px;color:var(--slate-900);margin-bottom:16px;" id="succ-amount"></div>
+
+    <div class="success-section-badge" id="succ-section-badge">
+      <div style="font-size:13px;color:var(--slate-400);margin-bottom:4px;">Paid from</div>
+      <div style="font-size:16px;font-weight:600;" id="succ-section-name"></div>
+      <div style="font-size:13px;color:var(--slate-500);margin-top:4px;" id="succ-section-remaining"></div>
+    </div>
+
+    <div id="succ-drained-banner" class="hidden" style="width:100%;background:var(--red);color:#fff;border-radius:10px;padding:12px;font-size:13px;font-weight:600;margin-top:8px;"></div>
+
+    <div style="margin-top:24px;width:100%;">
+      <button class="btn btn-primary" id="btn-back-home">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="main-nav">
+    <a href="/pages/dashboard.html" class="nav-item">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </a>
+    <a href="/pages/payment.html" class="nav-item active">
+      <span class="nav-icon">💳</span><span>Pay</span>
+    </a>
+    <a href="/pages/savings.html" class="nav-item">
+      <span class="nav-icon">🫙</span><span>Savings</span>
+    </a>
+    <a href="/pages/settings.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- PIN Overlay -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-overlay-inner">
+    <div class="pin-title">Enter PIN</div>
+    <div class="pin-subtitle">Confirm your payment</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad" id="pin-pad">
+      <button class="pin-key" data-k="1">1</button>
+      <button class="pin-key" data-k="2">2</button>
+      <button class="pin-key" data-k="3">3</button>
+      <button class="pin-key" data-k="4">4</button>
+      <button class="pin-key" data-k="5">5</button>
+      <button class="pin-key" data-k="6">6</button>
+      <button class="pin-key" data-k="7">7</button>
+      <button class="pin-key" data-k="8">8</button>
+      <button class="pin-key" data-k="9">9</button>
+      <button class="pin-key empty" data-k=""></button>
+      <button class="pin-key" data-k="0">0</button>
+      <button class="pin-key backspace" data-k="back">⌫</button>
+    </div>
+    <button class="btn btn-ghost" id="pin-cancel" style="color:var(--slate-400);font-size:13px;">Cancel</button>
+  </div>
+</div>
+
+<!-- Emergency Override Bottom Sheet -->
+<div class="overlay" id="emergency-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">⚠️</div>
+      <h3 style="color:var(--red);margin-bottom:6px;">Emergency Override</h3>
+      <p style="font-size:13px;color:var(--slate-500);line-height:1.6;">This will be recorded in your monthly review. Use only when absolutely necessary.</p>
+    </div>
+    <p style="font-size:13px;color:var(--slate-600);margin-bottom:4px;">Type exactly: <strong>"I am going over my budget"</strong></p>
+    <input type="text" class="emergency-input" id="emergency-input" placeholder='Type the phrase above' autocomplete="off">
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btn-emergency-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-emergency-confirm" disabled style="flex:2;background:var(--red);box-shadow:0 4px 16px rgba(239,68,68,0.35);">Confirm Override</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/payment.js"></script>
+</body>
+</html>

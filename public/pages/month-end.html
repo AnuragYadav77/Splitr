@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Month-End Review</title>
+  <meta name="description" content="Review your month, sweep remaining budget to savings, and set new budgets for next month.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Confetti-style hero ──────────────────────────── */
+    .month-end-hero {
+      text-align: center;
+      padding: 28px 20px 20px;
+      background: linear-gradient(135deg, #fff7ed 0%, #fef9c3 100%);
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .month-end-hero h1 {
+      font-size: 26px;
+      margin: 12px 0 6px;
+    }
+    .hero-sweep-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-light);
+      border: 1.5px solid rgba(34,197,94,0.3);
+      border-radius: 100px;
+      padding: 8px 18px;
+      margin-top: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--green);
+    }
+
+    /* ── Section budget row ───────────────────────────── */
+    .budget-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--slate-50);
+      border-radius: 12px;
+      border: 1px solid var(--slate-100);
+      margin-bottom: 8px;
+    }
+    .budget-row-emoji { font-size: 24px; flex-shrink: 0; }
+    .budget-row-name { font-weight: 600; font-size: 14px; flex: 1; min-width: 0; }
+    .budget-inp {
+      width: 90px;
+      padding: 8px 10px;
+      border: 1.5px solid var(--slate-200);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: right;
+      outline: none;
+      background: #fff;
+      font-family: 'Inter', sans-serif;
+      color: var(--slate-800);
+      flex-shrink: 0;
+    }
+    .budget-inp:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+
+    /* ── Summary card ─────────────────────────────────── */
+    .summary-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1.5px solid var(--slate-100);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--slate-50);
+      font-size: 13px;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row-label { color: var(--slate-500); }
+    .summary-row-val { font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Hero -->
+  <div class="month-end-hero">
+    <div style="font-size:56px;" class="coins-anim">💰</div>
+    <h1>Month Complete!</h1>
+    <p style="font-size:13px;color:var(--slate-500);" id="month-label">Here's how this month went.</p>
+    <div class="hero-sweep-badge" id="sweep-badge">
+      🪙 ₹— sweeping to savings
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-content">
+
+      <!-- Month Summary -->
+      <div style="margin-bottom:24px;">
+        <div class="label-sm mb-12">THIS MONTH'S SUMMARY</div>
+        <div class="summary-card" id="summary-card">
+          <!-- injected -->
+        </div>
+      </div>
+
+      <!-- New Budgets -->
+      <div>
+        <div class="label-sm mb-12">SET NEXT MONTH'S BUDGETS</div>
+        <p style="font-size:13px;color:var(--slate-400);margin-bottom:16px;">Review and adjust each section's budget for the new month.</p>
+        <div id="budgets-list">
+          <!-- injected -->
+        </div>
+      </div>
+
+      <!-- Confirm button — inline, not floating -->
+      <div style="padding:24px 0 40px;">
+        <button id="btn-confirm-rollover"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--green);color:#fff;border-radius:14px;font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(34,197,94,0.4);transition:all 0.2s ease;">
+          🚀 Start New Month
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="/js/month-end.js"></script>
+</body>
+</html>

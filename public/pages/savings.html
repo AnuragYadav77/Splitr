@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Savings Jar</title>
+  <meta name="description" content="View and manage your savings jar balance, set a goal, and track monthly sweeps.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Savings hero ─────────────────────────────────── */
+    .savings-hero {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 24px;
+      border: 1.5px solid rgba(34,197,94,0.2);
+    }
+    .savings-jar-emoji {
+      font-size: 60px;
+      line-height: 1;
+      margin-bottom: 12px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    .savings-balance {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 40px;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .savings-label {
+      font-size: 13px;
+      color: var(--slate-500);
+    }
+
+    /* ── Goal progress ───────────────────────────────── */
+    .goal-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1.5px solid var(--slate-100);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .goal-progress-track {
+      height: 10px;
+      background: var(--slate-100);
+      border-radius: 100px;
+      overflow: hidden;
+      margin: 10px 0 8px;
+    }
+    .goal-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #16a34a);
+      border-radius: 100px;
+      transition: width 0.8s ease;
+    }
+
+    /* ── Bar chart ───────────────────────────────────── */
+    .chart-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 120px;
+      padding: 0 4px;
+    }
+    .chart-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%;
+      background: linear-gradient(180deg, var(--green), #16a34a);
+      border-radius: 6px 6px 0 0;
+      transition: height 0.7s ease;
+      min-height: 4px;
+      position: relative;
+    }
+    .chart-bar.current {
+      background: linear-gradient(180deg, var(--orange), var(--orange-dark));
+    }
+    .chart-bar-label {
+      font-size: 9px;
+      color: var(--slate-400);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .chart-bar-amount {
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--slate-500);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ── History items ───────────────────────────────── */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--slate-50);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .history-icon.sweep    { background: var(--green-light); }
+    .history-icon.withdraw { background: var(--red-light); }
+
+    /* ── Withdraw sheet ──────────────────────────────── */
+    .withdraw-input {
+      font-size: 28px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      text-align: center;
+      border: none;
+      border-bottom: 3px solid var(--red);
+      background: transparent;
+      outline: none;
+      width: 100%;
+      padding: 8px 0;
+      color: var(--slate-800);
+    }
+    .withdraw-input::placeholder { color: var(--slate-200); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-btn" id="back-btn">←</button>
+    <h2 style="font-size:17px;">Savings Jar</h2>
+  </div>
+
+  <div class="page">
+    <div class="page-content">
+
+      <!-- Hero Balance -->
+      <div class="savings-hero" id="savings-hero">
+        <span class="savings-jar-emoji">🫙</span>
+        <div class="savings-balance" id="savings-balance">₹—</div>
+        <div class="savings-label">Total Savings</div>
+      </div>
+
+      <!-- Goal Card -->
+      <div id="goal-section">
+        <div class="label-sm mb-12">SAVINGS GOAL</div>
+        <div class="goal-card" id="goal-card">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- Monthly Chart -->
+      <div style="margin-top:24px;">
+        <div class="label-sm mb-12">MONTHLY SWEEPS</div>
+        <div class="card" style="padding:16px;">
+          <div class="chart-container" id="savings-chart">
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;color:var(--slate-300);font-size:13px;">
+              No sweep history yet.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div style="margin-top:24px;margin-bottom:8px;">
+        <div class="label-sm mb-12">HISTORY</div>
+        <div id="history-list">
+          <div id="history-empty" style="text-align:center;padding:24px;color:var(--slate-300);font-size:13px;">
+            No activity yet. Your month-end sweeps will appear here.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Withdraw FAB -->
+    <div class="pay-fab" id="withdraw-fab" style="display:none;">
+      <button id="btn-withdraw"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--red);color:#fff;border-radius:14px;font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(239,68,68,0.35);transition:all 0.2s ease;">
+        Withdraw from Savings
+      </button>
+    </div>
+
+  </div><!-- /.page -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="/pages/dashboard.html" class="nav-item">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </a>
+    <a href="/pages/payment.html" class="nav-item">
+      <span class="nav-icon">💳</span><span>Pay</span>
+    </a>
+    <a href="/pages/savings.html" class="nav-item active">
+      <span class="nav-icon">🫙</span><span>Savings</span>
+    </a>
+    <a href="/pages/settings.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- Set Goal Sheet -->
+<div class="overlay" id="goal-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">🎯</div>
+      <h3 style="margin-bottom:6px;">Set Savings Goal</h3>
+      <p style="font-size:13px;color:var(--slate-500);">Give your jar a purpose.</p>
+    </div>
+    <input type="text" class="input" id="goal-name" placeholder="Goal name (e.g. Vacation Fund)" style="margin-bottom:12px;" autocomplete="off">
+    <div style="position:relative;margin-bottom:4px;">
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--slate-400);">₹</span>
+      <input type="number" class="input" id="goal-target" placeholder="Target amount" style="padding-left:28px;" min="1">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btn-goal-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-goal-save" style="flex:2;">Save Goal</button>
+    </div>
+    <button class="btn btn-ghost" id="btn-goal-clear" style="width:100%;color:var(--red);margin-top:8px;font-size:13px;">Clear Goal</button>
+  </div>
+</div>
+
+<!-- Withdraw Sheet -->
+<div class="overlay" id="withdraw-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:32px;margin-bottom:8px;">💸</div>
+      <h3 style="color:var(--red);margin-bottom:6px;">Withdraw Savings</h3>
+      <p style="font-size:13px;color:var(--slate-500);" id="withdraw-avail-msg">Available: ₹—</p>
+    </div>
+    <input type="number" class="withdraw-input" id="withdraw-amount" placeholder="0" min="1">
+    <input type="text" class="input" id="withdraw-reason" placeholder="Reason (optional)" style="margin-top:12px;" autocomplete="off">
+    <div id="withdraw-err" class="hidden" style="color:var(--red);font-size:12px;text-align:center;margin-top:8px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btn-withdraw-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-danger" id="btn-withdraw-confirm" style="flex:2;background:var(--red);color:#fff;">Withdraw</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/savings.js"></script>
+</body>
+</html>
