@@ -11,9 +11,11 @@ Splitr is a UPI-inspired smart budgeting prototype designed to help you manage y
 - **Month-End Rollover:** A dedicated flow to reset your budgets for the new month and review your spending.
 
 ## Tech Stack
+
 - **Frontend:** Vanilla HTML, CSS, JavaScript (ES Modules). No heavy frameworks!
-- **Backend:** Node.js, Express.js.
-- **Database:** `lowdb` (local JSON file storage for rapid prototyping).
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB Atlas with Mongoose ODM
+- **Environment:** dotenv for environment variable management
 
 ## Getting Started
 
