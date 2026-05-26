@@ -182,6 +182,39 @@ router.delete('/sections/:id', async (req, res) => {
   }
 });
 
+// ── PATCH /sections/:id/topup ────────────────────────────────────────────────
+router.patch('/sections/:id/topup', async (req, res) => {
+  try {
+    await db.read();
+    const { amount } = req.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Amount must be a positive number' });
+    }
+    const section = db.data.sections.find(s => s.id === req.params.id);
+    if (!section) return res.status(404).json({ error: 'Section not found' });
+
+    section.budget += Number(amount);
+
+    const tx = {
+      id: uuidv4(),
+      merchant: 'Budget Top-up',
+      amount: Number(amount),
+      sectionId: section.id,
+      sectionName: section.name,
+      sectionEmoji: section.emoji,
+      isOverride: false,
+      type: 'topup',
+      createdAt: new Date().toISOString()
+    };
+    db.data.transactions.push(tx);
+
+    await db.write();
+    res.json({ success: true, section, transaction: tx });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── GET /section/:id ──────────────────────────────────────────────────────────
 router.get('/section/:id', async (req, res) => {
   try {

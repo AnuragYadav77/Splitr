@@ -47,6 +47,16 @@ function renderSection(section, txns) {
   document.getElementById('stat-remaining').textContent = formatINR(remaining);
   if (remaining <= 0) {
     document.getElementById('stat-remaining').className = 'stat-value text-red';
+  } else {
+    document.getElementById('stat-remaining').className = 'stat-value text-green';
+  }
+
+  // Show top-up CTA banner when section is drained
+  const topupCta = document.getElementById('topup-cta');
+  if (remaining <= 0) {
+    topupCta.classList.remove('hidden');
+  } else {
+    topupCta.classList.add('hidden');
   }
 
   // Pace indicator
@@ -86,16 +96,20 @@ function renderTransactions(txns) {
   }
   empty.style.display = 'none';
 
-  container.innerHTML = txns.map(tx => `
+  container.innerHTML = txns.map(tx => {
+    const isTopup = tx.type === 'topup';
+    return `
     <div class="tx-item">
-      <div class="tx-icon">${tx.sectionEmoji || '💳'}</div>
+      <div class="tx-icon" style="${isTopup ? 'background:var(--green-light);' : ''}">${isTopup ? '💰' : (tx.sectionEmoji || '💳')}</div>
       <div style="flex:1;min-width:0;">
         <div class="tx-merchant">${tx.merchant}</div>
-        <div class="tx-section">${timeAgo(tx.createdAt)}${tx.isOverride ? ' · <span style="color:var(--orange);">Override</span>' : ''}</div>
+        <div class="tx-section">${timeAgo(tx.createdAt)}${tx.isOverride ? ' · <span style="color:var(--orange);">Override</span>' : ''}${isTopup ? ' · <span style="color:var(--green);">Top-up</span>' : ''}</div>
       </div>
-      <div class="tx-amount">-${formatINR(tx.amount)}</div>
+      <div class="tx-amount" style="${isTopup ? 'color:var(--green);' : ''}">${isTopup ? '+' : '-'}${formatINR(tx.amount)}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+
 }
 
 // ── Delete Section ─────────────────────────────────────────────────
@@ -137,6 +151,70 @@ document.getElementById('btn-delete-confirm').addEventListener('click', async ()
 
 document.getElementById('delete-overlay').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('show');
+});
+
+// ── Top Up Budget ──────────────────────────────────────────────────
+function openTopupModal() {
+  const section = sectionData?.section;
+  if (!section) return;
+  const remaining = Math.max(0, section.budget - section.spent);
+  const subtext = remaining <= 0
+    ? `${section.emoji} ${section.name} is at its limit. Add more to continue spending.`
+    : `${section.emoji} ${section.name} has ${formatINR(remaining)} left. Top up to increase the cap.`;
+  document.getElementById('topup-subtext').textContent = subtext;
+  document.getElementById('topup-amount').value = '';
+  document.getElementById('btn-topup-confirm').disabled = true;
+  document.getElementById('topup-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('topup-amount').focus(), 350);
+}
+
+document.getElementById('btn-topup-main').addEventListener('click', openTopupModal);
+document.getElementById('btn-topup-quick').addEventListener('click', openTopupModal);
+
+document.getElementById('topup-amount').addEventListener('input', function() {
+  const val = parseFloat(this.value);
+  document.getElementById('btn-topup-confirm').disabled = !(val > 0);
+});
+
+// Quick-amount chips
+document.getElementById('quick-amounts').addEventListener('click', (e) => {
+  const chip = e.target.closest('.quick-chip');
+  if (!chip) return;
+  const amount = chip.dataset.amount;
+  document.getElementById('topup-amount').value = amount;
+  document.getElementById('btn-topup-confirm').disabled = false;
+  // Highlight selected chip
+  document.querySelectorAll('.quick-chip').forEach(c => c.style.cssText = '');
+  chip.style.cssText = 'border-color:var(--orange);color:var(--orange);background:var(--orange-light);';
+});
+
+document.getElementById('btn-topup-cancel').addEventListener('click', () => {
+  document.getElementById('topup-overlay').classList.remove('show');
+});
+
+document.getElementById('topup-overlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('show');
+});
+
+document.getElementById('btn-topup-confirm').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('topup-amount').value);
+  if (!amount || amount <= 0) return;
+
+  const btn = document.getElementById('btn-topup-confirm');
+  btn.textContent = 'Adding…';
+  btn.disabled = true;
+
+  try {
+    const res = await api('PATCH', `/sections/${sectionId}/topup`, { amount });
+    document.getElementById('topup-overlay').classList.remove('show');
+    toast(`✅ Added ${formatINR(amount)} to ${sectionData.section.name}!`, 'success');
+    // Reload section data to reflect the new budget
+    await loadSection();
+  } catch (e) {
+    toast('Top-up failed: ' + e.message, 'error');
+    btn.textContent = 'Add to Budget';
+    btn.disabled = false;
+  }
 });
 
 loadSection();

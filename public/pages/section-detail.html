@@ -23,6 +23,77 @@
       font-family: 'Inter', sans-serif; margin-top: 12px;
       text-align: center;
     }
+
+    .topup-amount-input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid var(--orange);
+      border-radius: 10px;
+      font-size: 22px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      outline: none;
+      text-align: center;
+      color: var(--slate-800);
+      background: var(--orange-light);
+      margin-top: 12px;
+      transition: box-shadow 0.2s ease;
+    }
+    .topup-amount-input:focus {
+      box-shadow: 0 0 0 4px rgba(249,115,22,0.15);
+    }
+    .topup-amount-input::placeholder { color: var(--slate-300); font-size: 18px; }
+
+    .btn-topup {
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: #fff;
+      width: 100%;
+      border: none;
+      border-radius: var(--radius-btn);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all var(--transition);
+      box-shadow: 0 4px 16px rgba(249,115,22,0.35);
+      margin-top: 16px;
+    }
+    .btn-topup:hover { filter: brightness(1.08); }
+    .btn-topup:disabled {
+      background: var(--slate-200);
+      color: var(--slate-400);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .btn-topup:active:not(:disabled) { transform: scale(0.97); }
+
+    .quick-amounts {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .quick-chip {
+      flex: 1;
+      min-width: 60px;
+      padding: 8px 0;
+      border: 1.5px solid var(--slate-200);
+      border-radius: 8px;
+      background: var(--slate-50);
+      color: var(--slate-600);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--transition);
+    }
+    .quick-chip:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-light); }
   </style>
 </head>
 <body>
@@ -74,6 +145,17 @@
       <!-- Pace indicator -->
       <div id="pace-box" class="pace-box pace-good hidden"></div>
 
+      <!-- Top Up Budget CTA -->
+      <div id="topup-cta" class="hidden" style="margin-top:16px;">
+        <div style="background:var(--orange-light);border:1.5px solid rgba(249,115,22,0.3);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--slate-700);">Section limit reached</div>
+            <div style="font-size:12px;color:var(--slate-500);margin-top:2px;">Add more budget to keep spending</div>
+          </div>
+          <button class="btn btn-sm" id="btn-topup-quick" style="background:var(--orange);color:#fff;white-space:nowrap;flex-shrink:0;">+ Top Up</button>
+        </div>
+      </div>
+
       <!-- Transaction history -->
       <div style="margin-top:24px;">
         <div class="label-sm mb-12">TRANSACTION HISTORY</div>
@@ -82,8 +164,11 @@
         </div>
       </div>
 
-      <!-- Delete Section -->
-      <div style="margin-top:32px;padding-bottom:12px;">
+      <!-- Actions Row -->
+      <div style="margin-top:24px;padding-bottom:12px;display:flex;flex-direction:column;gap:10px;">
+        <button class="btn" id="btn-topup-main" style="background:var(--green-light);color:var(--green);border:1.5px solid rgba(34,197,94,0.25);">
+          💰 Top Up Budget
+        </button>
         <button class="btn btn-danger" id="btn-delete-section">Delete This Section</button>
       </div>
 
@@ -122,6 +207,41 @@
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-secondary" id="btn-delete-cancel" style="flex:1;">Cancel</button>
       <button class="btn btn-danger" id="btn-delete-confirm" disabled style="flex:2;">Delete Section</button>
+    </div>
+  </div>
+</div>
+
+<!-- Top Up Budget Modal -->
+<div class="overlay" id="topup-overlay">
+  <div class="bottom-sheet">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="font-size:36px;margin-bottom:8px;">💰</div>
+      <h3 style="margin-bottom:4px;">Top Up Budget</h3>
+      <p id="topup-subtext" style="font-size:13px;color:var(--slate-500);">Add more money to this section</p>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Quick amounts</div>
+      <div class="quick-amounts" id="quick-amounts">
+        <button class="quick-chip" data-amount="500">₹500</button>
+        <button class="quick-chip" data-amount="1000">₹1,000</button>
+        <button class="quick-chip" data-amount="2000">₹2,000</button>
+        <button class="quick-chip" data-amount="5000">₹5,000</button>
+      </div>
+    </div>
+
+    <input
+      type="number"
+      class="topup-amount-input"
+      id="topup-amount"
+      placeholder="Enter amount…"
+      min="1"
+      inputmode="numeric"
+    >
+
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" id="btn-topup-cancel" style="flex:1;">Cancel</button>
+      <button class="btn-topup" id="btn-topup-confirm" disabled style="flex:2;">Add to Budget</button>
     </div>
   </div>
 </div>

@@ -2,7 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 import { router } from './routes.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +28,16 @@ app.get('/', (req, res) => {
   res.redirect('/pages/onboarding.html');
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Splitr running at http://localhost:${PORT}`);
-  console.log(`   Open http://localhost:${PORT} in your browser`);
-});
+// Connect to MongoDB then start server
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('✅ MongoDB connected');
+    app.listen(PORT, () => {
+      console.log(`✅ Splitr running at http://localhost:${PORT}`);
+      console.log(`   Open http://localhost:${PORT} in your browser`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1);
+  });
