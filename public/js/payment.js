@@ -25,7 +25,7 @@ function showStep(n) {
   // Hide header/nav on success
   const header = document.getElementById('pay-header');
   const nav = document.getElementById('main-nav');
-  if (n === 5) {
+  if (n === 5) { 
     header.style.display = 'none';
     nav.style.display = 'none';
   } else {
