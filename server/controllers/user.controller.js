@@ -12,7 +12,15 @@ const generateAccessAndRefreshTokens = async (userId) => {
     // Find the user we want to generate tokens for
     const user = await User.findById(userId);
 
+    // If the user does not exist, we cannot generate tokens
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Generate a new access token using the User model method
     const accessToken = user.generateAccessToken();
+
+    // Generate a new refresh token using the User model method
     const refreshToken = user.generateRefreshToken();
 
     // Store the refresh token in the DB so we can validate it later
@@ -23,6 +31,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
     // not the whole document
     await user.save({ validateBeforeSave: false });
 
+    // Return both tokens to the controller that called this helper
     return { accessToken, refreshToken };
 };
 
@@ -111,9 +120,9 @@ export const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
 
-    //2. Make sure the email field isn't empty
-    if (!email) {
-        throw new ApiError(400, "Email is required");
+    //2. Make sure the email and password fields aren't empty
+    if (!email || !password) {
+        throw new ApiError(400, "Email and password are required");
     }
 
 
@@ -148,13 +157,15 @@ export const loginUser = asyncHandler(async (req, res) => {
 
 
     //7. Cookie options — httpOnly and secure so the client JS can't touch them
+    // secure is false during local HTTP development and should be true in production HTTPS
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: false
     };
 
 
     //8. Send both tokens as cookies along with the user data
+    // The refresh token stays in the httpOnly cookie instead of being exposed in the response body
     return res
         .status(200)
         .cookie("accessToken", accessToken, cookieOptions)
@@ -164,8 +175,7 @@ export const loginUser = asyncHandler(async (req, res) => {
                 200,
                 {
                     user: loggedInUser,
-                    accessToken,
-                    refreshToken
+                    accessToken
                 },
                 "User logged in successfully"
             )
@@ -193,7 +203,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     // Same options as login — keep the cookies httpOnly and secure
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: false
     };
 
     // Clear both cookies and send the response
@@ -235,6 +245,8 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
 
 
     //3. Find the user that owns this refresh token
+    // We use the user ID stored inside the refresh token because
+    // verifyJWT is not required for this endpoint
     const user = await User.findById(decodedToken?._id);
 
     if (!user) {
@@ -253,12 +265,13 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken: newRefreshToken } =
         await generateAccessAndRefreshTokens(user._id);
 
+    // Use the same cookie settings as login during local development
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: false
     };
 
-    // Send the new tokens back as cookies and also in the response body
+    // Send the new tokens back as cookies and the access token in the response body
     return res
         .status(200)
         .cookie("accessToken", accessToken, cookieOptions)
@@ -266,7 +279,7 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                { accessToken, refreshToken: newRefreshToken },
+                { accessToken },
                 "Access token refreshed successfully"
             )
         );
@@ -275,15 +288,25 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
 
 // GET CURRENT USER
 // Simple — the verifyJWT middleware already fetched the user and
-// attached it to req.user, so we just send back what's already there
+// attached it to req.user, so we use that user's ID to fetch a clean version
 export const getCurrentUser = asyncHandler(async (req, res) => {
 
+    // Fetch the current user while excluding sensitive fields
+    const user = await User.findById(req.user._id)
+        .select("-password -refreshToken");
+
+    // If the user no longer exists in the database
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Return the current user's safe information
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                req.user,
+                user,
                 "Current user fetched successfully"
             )
         );
@@ -325,6 +348,11 @@ export const updateProfile = asyncHandler(async (req, res) => {
         }
     ).select("-password -refreshToken");
 
+    // If the user was not found
+    if (!updatedUser) {
+        throw new ApiError(404, "User not found");
+    }
+
 
     //4. Send the updated user back so the frontend can sync its state
     return res
@@ -336,4 +364,4 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 "Profile updated successfully"
             )
         );
-});
+});
