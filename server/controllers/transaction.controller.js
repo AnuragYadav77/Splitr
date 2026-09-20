@@ -46,6 +46,7 @@ export const createTransaction = asyncHandler(async (req, res) => {
     //   (unless the user explicitly triggers an override)
     if (direction === "debit" && !isOverride) {
         const remaining = section.monthlyBudget - section.spent;
+
         if (amount > remaining) {
             throw new ApiError(400, "Insufficient section budget", [
                 { field: "amount", shortBy: amount - remaining }
@@ -192,8 +193,10 @@ export const updateTransaction = asyncHandler(async (req, res) => {
     }
 
     //5. If the section is being changed, validate the new section
+    let newSection = null;
+
     if (newSectionId && newSectionId.toString() !== transaction.section.toString()) {
-        const newSection = await Section.findById(newSectionId);
+        newSection = await Section.findById(newSectionId);
 
         if (!newSection) {
             throw new ApiError(404, "New section not found");
@@ -204,7 +207,43 @@ export const updateTransaction = asyncHandler(async (req, res) => {
         }
     }
 
-    //6. Reverse the old transaction's impact on the original section's spent counter
+    //6. Determine the effective new values (fall back to existing values if not provided)
+    const effectiveAmount = amount ?? transaction.amount;
+    const effectiveDirection = direction ?? transaction.direction;
+    const effectiveSectionId = newSectionId ?? transaction.section;
+    const effectiveIsOverride = isOverride ?? transaction.isOverride;
+
+    //7. Check the effective transaction against the section's budget
+    //   Only debit transactions consume section budget.
+    //   The old transaction's impact is removed before calculating the new spent amount.
+    const targetSection = newSection || await Section.findById(effectiveSectionId);
+
+    if (!targetSection) {
+        throw new ApiError(404, "Section not found");
+    }
+
+    let targetSectionSpent = targetSection.spent;
+
+    // If the transaction stays in the same section, remove its old impact first.
+    if (effectiveSectionId.toString() === transaction.section.toString()) {
+        const oldSpentDelta = transaction.direction === "debit"
+            ? transaction.amount
+            : -transaction.amount;
+
+        targetSectionSpent -= oldSpentDelta;
+    }
+
+    if (effectiveDirection === "debit" && !effectiveIsOverride) {
+        const remaining = targetSection.monthlyBudget - targetSectionSpent;
+
+        if (effectiveAmount > remaining) {
+            throw new ApiError(400, "Insufficient section budget", [
+                { field: "amount", shortBy: effectiveAmount - remaining }
+            ]);
+        }
+    }
+
+    //8. Reverse the old transaction's impact on the original section's spent counter
     //   Old debit added to spent → subtract it; Old credit subtracted → add it back
     const oldSpentDelta = transaction.direction === "debit"
         ? -transaction.amount
@@ -215,12 +254,7 @@ export const updateTransaction = asyncHandler(async (req, res) => {
         { $inc: { spent: oldSpentDelta } }
     );
 
-    //7. Determine the effective new values (fall back to existing values if not provided)
-    const effectiveAmount = amount ?? transaction.amount;
-    const effectiveDirection = direction ?? transaction.direction;
-    const effectiveSectionId = newSectionId ?? transaction.section;
-
-    //8. Apply the new transaction's impact on the (possibly new) section's spent counter
+    //9. Apply the new transaction's impact on the (possibly new) section's spent counter
     const newSpentDelta = effectiveDirection === "debit"
         ? effectiveAmount
         : -effectiveAmount;
@@ -230,15 +264,15 @@ export const updateTransaction = asyncHandler(async (req, res) => {
         { $inc: { spent: newSpentDelta } }
     );
 
-    //9. Build the update object with only the provided fields
+    //10. Build the update object and apply the update
     const updateFields = {};
+
     if (amount !== undefined) updateFields.amount = amount;
     if (newSectionId !== undefined) updateFields.section = newSectionId;
     if (merchant !== undefined) updateFields.merchant = merchant.trim();
     if (direction !== undefined) updateFields.direction = direction;
     if (isOverride !== undefined) updateFields.isOverride = isOverride;
 
-    //10. Apply the update and return the new document
     const updatedTransaction = await Transaction.findByIdAndUpdate(
         transactionId,
         { $set: updateFields },
