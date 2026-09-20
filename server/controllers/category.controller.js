@@ -12,11 +12,11 @@ export const createCategory = asyncHandler(async (req, res) => {
     //1. Pull the required fields from the request body
     const { name, emoji, description } = req.body;
 
-    //2. name is required — reject early if missing
-    if (!name) {
+
+    //2. name is required and must be a non-empty string
+    if (typeof name !== "string" || name.trim() === "") {
         throw new ApiError(400, "Category name is required");
     }
-
     //3. Prevent duplicate category names for the same user
     const existingCategory = await Category.findOne({
         user: req.user._id,
@@ -44,8 +44,7 @@ export const createCategory = asyncHandler(async (req, res) => {
 
 
 // GET USER CATEGORIES
-// Returns all categories belonging to the authenticated user,
-// including any default (system-level) categories.
+// Returns all categories belonging to the authenticated user. 
 export const getUserCategories = asyncHandler(async (req, res) => {
 
     //1. Find every category owned by this user, newest first
@@ -92,8 +91,13 @@ export const updateCategory = asyncHandler(async (req, res) => {
     const { categoryId } = req.params;
     const { name, emoji, description } = req.body;
 
+
     //2. At least one updatable field must be provided
-    if (!name && emoji === undefined && description === undefined) {
+    if (name !== undefined && (typeof name !== "string" || name.trim() === "")) {
+        throw new ApiError(400, "Category name cannot be empty");
+    }
+
+    if (name === undefined && emoji === undefined && description === undefined) {
         throw new ApiError(400, "Please provide at least one field to update");
     }
 
