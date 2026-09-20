@@ -28,14 +28,23 @@ export const createBudget = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Year must be a valid number between 1900 and 2100");
     }
 
+    if (Number(month.slice(0, 4)) !== year) {
+        throw new ApiError(400, "Month and year must refer to the same year");
+    }
+
+
     //5. Validate totalIncome if provided — must be a non-negative number
     if (totalIncome !== undefined && (typeof totalIncome !== "number" || totalIncome < 0)) {
         throw new ApiError(400, "Total income must be a valid non-negative number");
     }
 
-    //6. Validate totalAllocated if provided — must be a non-negative number
+    ///6. Validate totalAllocated and totalSaved if provided — must be non-negative numbers
     if (totalAllocated !== undefined && (typeof totalAllocated !== "number" || totalAllocated < 0)) {
         throw new ApiError(400, "Total allocated must be a valid non-negative number");
+    }
+
+    if (totalSaved !== undefined && (typeof totalSaved !== "number" || totalSaved < 0)) {
+        throw new ApiError(400, "Total saved must be a valid non-negative number");
     }
 
     //7. Prevent duplicate budgets for the same user and month
@@ -53,9 +62,9 @@ export const createBudget = asyncHandler(async (req, res) => {
         user: req.user._id,
         month,
         year,
-        totalIncome: totalIncome || 0,
-        totalAllocated: totalAllocated || 0,
-        totalSaved: totalSaved || 0,
+        totalIncome: totalIncome ?? 0,
+        totalAllocated: totalAllocated ?? 0,
+        totalSaved: totalSaved ?? 0,
     });
 
     //9. Send back the newly created budget
@@ -161,6 +170,23 @@ export const updateBudget = asyncHandler(async (req, res) => {
 
     if (budget.user.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to update this budget");
+    }
+    if (month !== undefined && year !== undefined) {
+        if (Number(month.slice(0, 4)) !== year) {
+            throw new ApiError(400, "Month and year must refer to the same year");
+        }
+    }
+
+    if (month !== undefined && year === undefined) {
+        if (Number(month.slice(0, 4)) !== budget.year) {
+            throw new ApiError(400, "Month and year must refer to the same year");
+        }
+    }
+
+    if (year !== undefined && month === undefined) {
+        if (Number(budget.month.slice(0, 4)) !== year) {
+            throw new ApiError(400, "Month and year must refer to the same year");
+        }
     }
 
     //9. If month is being changed, ensure no duplicate exists for the new month
