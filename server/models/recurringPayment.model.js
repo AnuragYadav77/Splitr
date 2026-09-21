@@ -1,45 +1,54 @@
-import mongoose,{Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const recurringPaymentSchema = new Schema({
-    user:{//reference to the user who receives it 
-        type:Schema.Types.ObjectId,
-        ref:"User",
-        required:true,
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     },
-    name:{//Netflix, gym,rent.
-        type:String,
-        required:true,
-        trim:true,
+
+    name: {
+        type: String,
+        required: true,
+        trim: true
     },
-    amount:{ 
-        type:Number,
-        required:true,
-        min: [0.01, "Amount must be greater than 0"],
+
+    amount: {
+        type: Number,
+        required: true
     },
-    frequency:{
-        type:String,
-        enum:["weekly", "monthly", "quarterly", "yearly"],
-        required:true,
+
+    frequency: {
+        type: String,
+        enum: ["weekly", "monthly", "quarterly", "yearly"],
+        required: true
     },
-    nextDueDate:{
-        type:Date,
-        required:true,
+
+    nextDueDate: {
+        type: Date,
+        required: true
     },
-    section:{
-        //reference to the relevant section,
-        type:Schema.Types.ObjectId,
-        ref:"Section",
-        default:null,
+
+    section: {
+        type: Schema.Types.ObjectId,
+        ref: "Section",
+        default: null
     },
-    category:{ //reference to the Category describing what the payment is for
-        type:Schema.Types.ObjectId,
-        ref:"Category",
+
+    category: {
+        type: Schema.Types.ObjectId,
+        ref: "Category",
+        default: null
     },
-    isActive:{ //allows the user to pause/cancel a recurring payment without deleting its history
-        type:Boolean,
-        default:true,
+
+    isActive: {
+        type: Boolean,
+        default: true
     }
 
-},{timestamps:true})
+}, { timestamps: true });
 
-export const RecurringPayment = mongoose.model("RecurringPayment",recurringPaymentSchema);
+export const RecurringPayment = mongoose.model(
+    "RecurringPayment",
+    recurringPaymentSchema
+);
