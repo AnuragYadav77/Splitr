@@ -96,7 +96,7 @@ export const createRecurringPayment = asyncHandler(async (req, res) => {
         frequency,
         nextDueDate: new Date(nextDueDate),
         section: section || null,
-        category: category || undefined,
+        category: category || null,
         isActive: true,
     });
 
@@ -216,6 +216,10 @@ export const updateRecurringPayment = asyncHandler(async (req, res) => {
 
     if (nextDueDate !== undefined && isNaN(Date.parse(nextDueDate))) {
         throw new ApiError(400, "A valid next due date is required");
+    }
+
+    if (isActive !== undefined && typeof isActive !== "boolean") {
+        throw new ApiError(400, "isActive must be a boolean");
     }
 
     //4. Find the existing payment and confirm ownership
