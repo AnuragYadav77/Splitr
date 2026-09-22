@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Notification } from "../models/notification.model.js";
+import { Section } from "../models/section.model.js";
 
 
 // CREATE NOTIFICATION
@@ -17,19 +18,31 @@ export const createNotification = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User ID is required");
     }
 
-    if (!type || !type.trim()) {
-        throw new ApiError(400, "Notification type is required");
+    if (typeof type !== "string" || !type.trim()) {
+        throw new ApiError(400, "Notification type is required and must be a non-empty string");
     }
 
-    if (!title || !title.trim()) {
-        throw new ApiError(400, "Notification title is required");
+    if (typeof title !== "string" || !title.trim()) {
+        throw new ApiError(400, "Notification title is required and must be a non-empty string");
     }
 
-    if (!message || !message.trim()) {
-        throw new ApiError(400, "Notification message is required");
+    if (typeof message !== "string" || !message.trim()) {
+        throw new ApiError(400, "Notification message is required and must be a non-empty string");
     }
 
-    //3. Create the notification document
+    //3. Validate section if provided — it must belong to the specified user
+    if (section) {
+        const sectionExists = await Section.findOne({
+            _id: section,
+            user,
+        });
+
+        if (!sectionExists) {
+            throw new ApiError(404, "Section not found");
+        }
+    }
+
+    //4. Create the notification document
     const notification = await Notification.create({
         user,
         type: type.trim(),
@@ -39,7 +52,7 @@ export const createNotification = asyncHandler(async (req, res) => {
         isRead: false,
     });
 
-    //4. Send back the newly created notification
+    //5. Send back the newly created notification
     return res.status(201).json(
         new ApiResponse(201, notification, "Notification created successfully")
     );
