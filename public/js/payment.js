@@ -1,354 +1,215 @@
-// ── payment.js ───────────────────────────────────────────────────
-import { formatINR, api, navigate, toast, sectionColour } from './utils.js';
+// ── payment.js — Payment flow ──────────────────────────────────────
+import {
+  api, formatINR, sectionColour, getRemaining, getPctSpent, navigate, toast
+} from './utils.js';
 
-const MERCHANTS = ['Swiggy', 'Zomato', 'BigBasket', 'IRCTC', 'Myntra', 'PharmEasy', 'BookMyShow', 'Uber', 'BSES Electricity', 'DMart'];
+let sections = [];
+let selectedSection = null;
+let step = 1;
 
-let state = {
-  step: 1,
-  merchant: '',
-  amount: 0,
-  sections: [],
-  selectedSection: null,
-  isOverride: false,
-  overrideSections: [], // section IDs allowed via override
-};
+// Step elements
+const steps = [null, 'pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
 
-// ── Step navigation ───────────────────────────────────────────────
 function showStep(n) {
-  document.querySelectorAll('.pay-step').forEach(s => s.classList.remove('active'));
-  document.getElementById(`pstep-${n}`).classList.add('active');
-  state.step = n;
-
-  const titles = { 1: 'Scan & Pay', 2: 'Enter Amount', 3: 'Choose Section', 4: 'Confirm Payment', 5: '' };
-  document.getElementById('pay-step-title').textContent = titles[n] || '';
-
-  // Hide header/nav on success
-  const header = document.getElementById('pay-header');
-  const nav = document.getElementById('main-nav');
-  if (n === 5) { 
-    header.style.display = 'none';
-    nav.style.display = 'none';
-  } else {
-    header.style.display = '';
-    nav.style.display = '';
-  }
+  step = n;
+  steps.forEach((id, i) => {
+    if (!id) return;
+    document.getElementById(id).classList.toggle('active', i === n);
+  });
+  const titles = ['', 'Log a payment', 'Choose section', 'Confirm payment', 'Done'];
+  document.getElementById('step-title').textContent = titles[n] || 'Log a payment';
 }
 
-// ── Back button ───────────────────────────────────────────────────
-document.getElementById('back-btn').addEventListener('click', () => {
-  if (state.step === 1) { navigate('/pages/dashboard.html'); }
-  else { showStep(state.step - 1); }
-});
+// ── Load Sections ─────────────────────────────────────────────────
 
-// ── STEP 1: QR Scanner + Merchant ─────────────────────────────────
-function startScanner() {
-  // Auto-fill a random merchant after 2.5s
-  setTimeout(() => {
-    const m = MERCHANTS[Math.floor(Math.random() * MERCHANTS.length)];
-    setMerchant(m, true);
-  }, 2500);
-}
-
-function setMerchant(name, fromQr = false) {
-  state.merchant = name;
-  document.getElementById('inp-merchant').value = name;
-  document.getElementById('detected-name').textContent = name;
-  document.getElementById('merchant-detected').classList.remove('hidden');
-  document.getElementById('btn-p1-continue').disabled = false;
-
-  if (fromQr) {
-    const center = document.getElementById('qr-center');
-    center.innerHTML = `<div style="font-size:20px;">✅</div><div style="font-size:12px;color:var(--green);font-weight:600;">${name}</div>`;
-  }
-}
-
-document.getElementById('inp-merchant').addEventListener('input', function() {
-  const v = this.value.trim();
-  state.merchant = v;
-  document.getElementById('btn-p1-continue').disabled = !v;
-  if (v) {
-    document.getElementById('detected-name').textContent = v;
-    document.getElementById('merchant-detected').classList.remove('hidden');
-  } else {
-    document.getElementById('merchant-detected').classList.add('hidden');
-  }
-});
-
-document.getElementById('btn-p1-continue').addEventListener('click', () => {
-  if (!state.merchant) return;
-  document.getElementById('amt-merchant-name').textContent = state.merchant;
-  showStep(2);
-  setTimeout(() => document.getElementById('inp-amount').focus(), 100);
-});
-
-// ── STEP 2: Amount ─────────────────────────────────────────────────
-document.getElementById('btn-p2-continue').addEventListener('click', () => {
-  const v = parseFloat(document.getElementById('inp-amount').value);
-  const err = document.getElementById('amt-err');
-  if (!v || v <= 0) { err.classList.remove('hidden'); return; }
-  err.classList.add('hidden');
-  state.amount = v;
-  loadSections();
-  showStep(3);
-});
-
-document.getElementById('inp-amount').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('btn-p2-continue').click();
-});
-
-// ── STEP 3: Section Select ─────────────────────────────────────────
 async function loadSections() {
   try {
-    state.sections = await api('GET', '/sections');
+    sections = await api('GET', '/sections');
     renderSectionGrid();
-  } catch (e) {
-    toast('Could not load sections', 'error');
+  } catch {
+    document.getElementById('section-select-grid').innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;color:var(--n-400);padding:20px 0;">Could not load sections.</div>';
   }
 }
 
 function renderSectionGrid() {
+  const amount = parseFloat(document.getElementById('inp-amount').value) || 0;
   const grid = document.getElementById('section-select-grid');
-  grid.innerHTML = '';
-  state.selectedSection = null;
-  document.getElementById('btn-p3-continue').disabled = true;
 
-  const sub = document.getElementById('p3-subtitle');
-  sub.textContent = `Paying ${formatINR(state.amount)} from…`;
-
-  state.sections.forEach(section => {
-    const remaining = section.budget - section.spent;
-    const isDrained = remaining <= 0;
-    const isOverrideAllowed = state.overrideSections.includes(section.id);
-    const colour = isDrained ? 'red' : sectionColour(section.budget, section.spent);
-
-    const card = document.createElement('div');
-    card.className = 'section-select-card' + (isDrained && !isOverrideAllowed ? ' drained' : '');
-    card.dataset.id = section.id;
-
-    const colourHex = colour === 'green' ? '#22C55E' : colour === 'amber' ? '#EAB308' : '#EF4444';
-
-    card.innerHTML = `
-      <div style="font-size:28px;margin-bottom:6px;">${section.emoji}</div>
-      <div style="font-weight:600;font-size:13px;color:var(--slate-700);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${section.name}</div>
-      ${isDrained && !isOverrideAllowed
-        ? `<div style="font-size:10px;color:var(--slate-400);">Done for this month</div>`
-        : `<div style="font-size:12px;font-weight:600;color:${colourHex};">${formatINR(remaining)} left</div>`
-      }
-      ${isOverrideAllowed ? `<div style="font-size:10px;color:var(--orange);margin-top:4px;font-weight:600;">Emergency</div>` : ''}
-    `;
-
-    if (!isDrained || isOverrideAllowed) {
-      card.addEventListener('click', () => selectSection(section, card));
-    }
-    grid.appendChild(card);
-  });
-}
-
-function selectSection(section, cardEl) {
-  state.selectedSection = section;
-  document.querySelectorAll('.section-select-card').forEach(c => {
-    c.classList.remove('selected');
-    c.querySelector('.selected-check')?.remove();
-  });
-  cardEl.classList.add('selected');
-
-  // Add check
-  const check = document.createElement('div');
-  check.className = 'selected-check';
-  check.textContent = '✓';
-  cardEl.appendChild(check);
-
-  document.getElementById('btn-p3-continue').disabled = false;
-}
-
-document.getElementById('btn-p3-continue').addEventListener('click', () => {
-  if (!state.selectedSection) return;
-  renderConfirmation();
-  showStep(4);
-});
-
-// ── STEP 4: Confirmation ───────────────────────────────────────────
-function renderConfirmation() {
-  const s = state.selectedSection;
-  const remaining = s.budget - s.spent;
-  const afterPayment = remaining - state.amount;
-
-  document.getElementById('conf-merchant').textContent = state.merchant;
-  document.getElementById('conf-amount').textContent = formatINR(state.amount);
-  document.getElementById('conf-section-from').textContent = `From: ${s.emoji} ${s.name}`;
-
-  const nudge = document.getElementById('conf-nudge');
-  const block = document.getElementById('conf-block');
-  const pinBtn = document.getElementById('btn-enter-pin');
-
-  if (afterPayment < 0) {
-    // Block
-    nudge.classList.add('hidden');
-    block.classList.remove('hidden');
-    document.getElementById('conf-block-msg').textContent =
-      `Not enough budget in ${s.name} (${formatINR(Math.abs(afterPayment))} short). Select a different section.`;
-    pinBtn.disabled = true;
-    pinBtn.style.opacity = '0.4';
+  if (!sections || sections.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--n-400);padding:20px;">
+      No sections. <a href="/pages/sections.html" class="text-indigo" style="font-weight:600;">Create one</a>
+    </div>`;
     return;
   }
 
-  block.classList.add('hidden');
-  pinBtn.disabled = false;
-  pinBtn.style.opacity = '1';
+  grid.innerHTML = sections.map(sec => {
+    const remaining = getRemaining(sec.monthlyBudget, sec.spent);
+    const colour    = sectionColour(sec.monthlyBudget, sec.spent);
+    const insufficient = amount > 0 && remaining < amount;
 
-  const pct = s.budget > 0 ? (afterPayment / s.budget) * 100 : 0;
-  let nudgeClass = '', nudgeText = '';
+    return `
+      <div
+        class="section-option${insufficient ? ' drained' : ''}"
+        data-id="${sec._id}"
+        role="button"
+        tabindex="${insufficient ? -1 : 0}"
+        aria-label="${sec.name}: ${formatINR(remaining)} remaining"
+        aria-disabled="${insufficient}"
+      >
+        <div style="font-size:20px;margin-bottom:4px;">${sec.emoji || '📦'}</div>
+        <div class="section-option-name">${sec.name}</div>
+        <div class="section-option-remaining ${colour}">${formatINR(remaining)}</div>
+        <div style="font-size:10px;color:var(--n-300);margin-top:1px;">remaining</div>
+        ${insufficient ? '<div style="font-size:10px;color:var(--red-500);margin-top:3px;">Insufficient</div>' : ''}
+      </div>
+    `;
+  }).join('');
 
-  if (s.budget - s.spent === state.amount) {
-    nudgeClass = 'danger';
-    nudgeText = `⚠️ This will finish your <strong>${s.name}</strong> budget for the month.`;
-  } else if (pct < 20) {
-    nudgeClass = 'warning';
-    nudgeText = `After this payment: <strong>${formatINR(afterPayment)}</strong> left in <strong>${s.name}</strong> this month. ⚠️ Running low on this section.`;
-  } else {
-    nudgeClass = '';
-    nudgeText = `After this payment: <strong>${formatINR(afterPayment)}</strong> left in <strong>${s.name}</strong> this month.`;
-  }
-
-  nudge.className = 'confirmation-nudge' + (nudgeClass ? ` ${nudgeClass}` : '');
-  nudge.innerHTML = nudgeText;
-  nudge.classList.remove('hidden');
-}
-
-document.getElementById('btn-change-section').addEventListener('click', () => showStep(3));
-
-// ── PIN Overlay ────────────────────────────────────────────────────
-let pinValue = '';
-
-function updatePinDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById(`dot-${i}`);
-    dot.classList.toggle('filled', i < pinValue.length);
-  }
-}
-
-document.getElementById('btn-enter-pin').addEventListener('click', () => {
-  pinValue = '';
-  updatePinDots();
-  document.getElementById('pin-error').textContent = '';
-  document.getElementById('pin-overlay').classList.add('show');
-});
-
-document.getElementById('pin-cancel').addEventListener('click', () => {
-  document.getElementById('pin-overlay').classList.remove('show');
-  pinValue = '';
-  updatePinDots();
-});
-
-document.querySelectorAll('.pin-key').forEach(key => {
-  key.addEventListener('click', async () => {
-    const k = key.dataset.k;
-    if (k === 'back') {
-      pinValue = pinValue.slice(0, -1);
-      updatePinDots();
-    } else if (k === '') {
-      return;
-    } else {
-      if (pinValue.length >= 4) return;
-      pinValue += k;
-      updatePinDots();
-      if (pinValue.length === 4) {
-        await verifyAndPay();
-      }
-    }
+  grid.querySelectorAll('.section-option:not(.drained)').forEach(card => {
+    const handler = () => selectSection(card.dataset.id);
+    card.addEventListener('click', handler);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') handler(); });
   });
-});
-
-async function verifyAndPay() {
-  try {
-    const result = await api('POST', '/verify-pin', { pin: pinValue });
-    if (!result.valid) {
-      // Shake and show error
-      const dots = document.getElementById('pin-dots');
-      dots.classList.add('pin-shake');
-      setTimeout(() => dots.classList.remove('pin-shake'), 500);
-      document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
-      pinValue = '';
-      updatePinDots();
-      return;
-    }
-
-    // Process payment
-    document.getElementById('pin-overlay').classList.remove('show');
-    await processPayment();
-  } catch (e) {
-    toast('Error verifying PIN', 'error');
-    pinValue = '';
-    updatePinDots();
-  }
 }
 
-async function processPayment() {
+function selectSection(id) {
+  selectedSection = sections.find(s => s._id === id);
+  if (!selectedSection) return;
+
+  const amount     = parseFloat(document.getElementById('inp-amount').value) || 0;
+  const remaining  = getRemaining(selectedSection.monthlyBudget, selectedSection.spent);
+  const afterSpend = remaining - amount;
+
+  // Highlight selected
+  document.querySelectorAll('.section-option').forEach(card => {
+    card.classList.toggle('selected', card.dataset.id === id);
+  });
+
+  // Budget warning
+  const warn = document.getElementById('budget-warning');
+  if (amount > remaining) {
+    warn.textContent = `${selectedSection.name} only has ${formatINR(remaining)} — this payment exceeds the budget.`;
+    warn.classList.remove('hidden');
+    warn.className = 'spend-nudge danger';
+  } else if (afterSpend < remaining * 0.2) {
+    warn.textContent = `After this payment, only ${formatINR(afterSpend)} will remain in ${selectedSection.name}.`;
+    warn.classList.remove('hidden');
+    warn.className = 'spend-nudge warn';
+  } else {
+    warn.classList.add('hidden');
+  }
+
+  document.getElementById('btn-p2-confirm').disabled = false;
+}
+
+// ── Step Navigation ───────────────────────────────────────────────
+
+// Step 1 → 2
+document.getElementById('btn-p1-next').addEventListener('click', () => {
+  const merchant = document.getElementById('inp-merchant').value.trim();
+  const amount   = parseFloat(document.getElementById('inp-amount').value);
+
+  let valid = true;
+  clearErr('merchant'); clearErr('amount');
+  if (!merchant) { showErr('merchant', 'Enter a merchant name.'); valid = false; }
+  if (!amount || amount <= 0) { showErr('amount', 'Enter a valid amount.'); valid = false; }
+  if (!valid) return;
+
+  document.getElementById('conf-amount-display').textContent = formatINR(amount);
+  document.getElementById('conf-merchant-display').textContent = merchant;
+
+  loadSections();
+  renderSectionGrid();
+  showStep(2);
+});
+
+// Step 2 → 3
+document.getElementById('btn-p2-confirm').addEventListener('click', () => {
+  if (!selectedSection) return;
+
+  const amount   = parseFloat(document.getElementById('inp-amount').value);
+  const merchant = document.getElementById('inp-merchant').value.trim();
+  const remaining = getRemaining(selectedSection.monthlyBudget, selectedSection.spent);
+  const afterSpend = Math.max(0, remaining - amount);
+
+  document.getElementById('conf-amount').textContent   = formatINR(amount);
+  document.getElementById('conf-merchant').textContent = merchant;
+  document.getElementById('conf-section-name').textContent = `${selectedSection.emoji || ''} ${selectedSection.name}`.trim();
+  document.getElementById('conf-section-after').textContent =
+    `${formatINR(afterSpend)} will remain after this payment`;
+
+  // Awareness nudge
+  const awareness = document.getElementById('conf-awareness');
+  if (amount > remaining) {
+    awareness.textContent = `This exceeds the ${selectedSection.name} budget by ${formatINR(amount - remaining)}.`;
+    awareness.className = 'spend-nudge danger';
+  } else if (afterSpend < remaining * 0.2) {
+    awareness.textContent = `You'll have ${formatINR(afterSpend)} left in ${selectedSection.name} after this.`;
+    awareness.className = 'spend-nudge warn';
+  } else {
+    awareness.textContent = `${selectedSection.name} has ${formatINR(remaining)} available. You'll have ${formatINR(afterSpend)} left.`;
+    awareness.className = 'spend-nudge ok';
+  }
+
+  showStep(3);
+});
+
+// Step 3 → back or confirm
+document.getElementById('btn-p3-back').addEventListener('click', () => showStep(2));
+
+document.getElementById('btn-p3-confirm').addEventListener('click', async () => {
+  const amount   = parseFloat(document.getElementById('inp-amount').value);
+  const merchant = document.getElementById('inp-merchant').value.trim();
+  const btn      = document.getElementById('btn-p3-confirm');
+
+  btn.classList.add('btn-loading');
   try {
-    const result = await api('POST', '/pay', {
-      merchant: state.merchant,
-      amount: state.amount,
-      sectionId: state.selectedSection.id,
-      isOverride: state.isOverride
+    await api('POST', '/transactions', {
+      merchant,
+      amount,
+      section: selectedSection._id,
+      direction: 'debit',
     });
 
-    const section = result.section;
-    const remaining = section.budget - section.spent;
+    // Update local section spent
+    selectedSection.spent = (selectedSection.spent || 0) + amount;
+    const remaining = getRemaining(selectedSection.monthlyBudget, selectedSection.spent);
 
-    // Show success
-    document.getElementById('succ-merchant').textContent = state.merchant;
-    document.getElementById('succ-amount').textContent = formatINR(state.amount);
-    document.getElementById('succ-section-name').textContent = `${section.emoji} ${section.name}`;
-    document.getElementById('succ-section-remaining').textContent = `${formatINR(Math.max(0, remaining))} remaining this month`;
+    document.getElementById('succ-amount').textContent = formatINR(amount);
+    document.getElementById('succ-section').textContent = `${selectedSection.emoji || ''} ${selectedSection.name}`.trim();
+    document.getElementById('succ-remaining').textContent = `${formatINR(remaining)} remaining in this section`;
 
-    const banner = document.getElementById('succ-drained-banner');
-    if (remaining <= 0) {
-      banner.textContent = `Your ${section.name} budget is done for this month 🔴`;
-      banner.classList.remove('hidden');
-    } else {
-      banner.classList.add('hidden');
-    }
-
-    showStep(5);
-
-    // Auto-redirect after 3 seconds
-    setTimeout(() => navigate('/pages/dashboard.html'), 3000);
-  } catch (e) {
-    toast('Payment failed: ' + e.message, 'error');
+    showStep(4);
+  } catch (err) {
+    toast(err.message || 'Payment failed. Try again.', 'error');
+  } finally {
+    btn.classList.remove('btn-loading');
   }
+});
+
+// Log another
+document.getElementById('btn-pay-another').addEventListener('click', () => {
+  document.getElementById('inp-merchant').value = '';
+  document.getElementById('inp-amount').value   = '';
+  selectedSection = null;
+  showStep(1);
+});
+
+// Back button
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (step > 1 && step < 4) showStep(step - 1);
+  else navigate('/pages/dashboard.html');
+});
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+function showErr(id, msg) {
+  const el = document.getElementById(`err-${id}`);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
 }
 
-document.getElementById('btn-back-home').addEventListener('click', () => navigate('/pages/dashboard.html'));
-
-// ── Emergency Override ────────────────────────────────────────────
-document.getElementById('btn-emergency').addEventListener('click', () => {
-  document.getElementById('emergency-overlay').classList.add('show');
-  document.getElementById('emergency-input').value = '';
-  document.getElementById('btn-emergency-confirm').disabled = true;
-});
-
-document.getElementById('emergency-input').addEventListener('input', function() {
-  const match = this.value.trim().toLowerCase() === 'i am going over my budget';
-  document.getElementById('btn-emergency-confirm').disabled = !match;
-});
-
-document.getElementById('btn-emergency-cancel').addEventListener('click', () => {
-  document.getElementById('emergency-overlay').classList.remove('show');
-});
-
-document.getElementById('btn-emergency-confirm').addEventListener('click', () => {
-  document.getElementById('emergency-overlay').classList.remove('show');
-  // Allow all drained sections for this payment
-  state.isOverride = true;
-  state.overrideSections = state.sections.filter(s => s.budget - s.spent <= 0).map(s => s.id);
-  renderSectionGrid();
-  toast('Emergency override activated. All sections are now selectable.', 'warning');
-});
-
-// ── Close overlay on bg click ─────────────────────────────────────
-document.getElementById('emergency-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
-});
-
-// ── Boot ──────────────────────────────────────────────────────────
-startScanner();
+function clearErr(id) {
+  const el = document.getElementById(`err-${id}`);
+  if (el) { el.textContent = ''; el.classList.remove('show'); }
+}

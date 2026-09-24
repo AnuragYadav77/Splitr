@@ -1,220 +1,179 @@
-// ── sections.js (section-detail.html) ───────────────────────────
-import { formatINR, api, navigate, toast, timeAgo, sectionHex } from './utils.js';
+// ── sections.js — Sections list page ──────────────────────────────
+import {
+  api, formatINR, sectionColour, getRemaining, getPctSpent,
+  navigate, toast, errorState
+} from './utils.js';
 
-const params = new URLSearchParams(window.location.search);
-const sectionId = params.get('id');
+let sections = [];
+let userIncome = 0;
 
-if (!sectionId) navigate('/pages/dashboard.html');
-
-document.getElementById('back-btn').addEventListener('click', () => navigate('/pages/dashboard.html'));
-
-let sectionData = null;
-
-async function loadSection() {
+async function load() {
   try {
-    const data = await api('GET', `/section/${sectionId}`);
-    sectionData = data;
-    renderSection(data.section, data.transactions || []);
+    const [user, secs] = await Promise.all([
+      api('GET', '/users/me'),
+      api('GET', '/sections'),
+    ]);
+    sections = secs || [];
+    userIncome = user?.monthlyIncome || 0;
+    render();
+    renderAllocationBar();
   } catch (e) {
-    toast('Could not load section', 'error');
-    navigate('/pages/dashboard.html');
-  }
-}
-
-function renderSection(section, txns) {
-  document.title = `Splitr — ${section.name}`;
-  document.getElementById('section-title').textContent = section.name;
-  document.getElementById('hero-emoji').textContent = section.emoji;
-  document.getElementById('hero-name').textContent = section.name;
-
-  const remaining = Math.max(0, section.budget - section.spent);
-  const pct = section.budget > 0 ? Math.max(0, Math.min(100, (remaining / section.budget) * 100)) : 0;
-
-  // Circular progress
-  const circumference = 326.7;
-  const offset = circumference - (pct / 100) * circumference;
-  const fill = document.getElementById('circ-fill');
-  const hex = sectionHex(section.budget, section.spent);
-  fill.style.stroke = hex;
-  setTimeout(() => { fill.style.strokeDashoffset = offset; }, 100);
-
-  document.getElementById('circ-pct').textContent = Math.round(pct) + '%';
-  document.getElementById('circ-pct').style.color = hex;
-
-  // Stats
-  document.getElementById('stat-budget').textContent = formatINR(section.budget);
-  document.getElementById('stat-spent').textContent = formatINR(section.spent);
-  document.getElementById('stat-remaining').textContent = formatINR(remaining);
-  if (remaining <= 0) {
-    document.getElementById('stat-remaining').className = 'stat-value text-red';
-  } else {
-    document.getElementById('stat-remaining').className = 'stat-value text-green';
-  }
-
-  // Show top-up CTA banner when section is drained
-  const topupCta = document.getElementById('topup-cta');
-  if (remaining <= 0) {
-    topupCta.classList.remove('hidden');
-  } else {
-    topupCta.classList.add('hidden');
-  }
-
-  // Pace indicator
-  const now = new Date();
-  const daysElapsed = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = daysInMonth - daysElapsed;
-  const paceBox = document.getElementById('pace-box');
-
-  if (section.spent > 0 && daysElapsed > 0) {
-    paceBox.classList.remove('hidden');
-    const dailyRate = section.spent / daysElapsed;
-    const projected = dailyRate * daysInMonth;
-
-    if (projected > section.budget) {
-      const daysLeft = Math.max(0, Math.floor((section.budget - section.spent) / dailyRate));
-      paceBox.className = 'pace-box pace-warn';
-      paceBox.textContent = `⚠️ At this pace, ${section.name} runs out in ~${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`;
-    } else {
-      const projectedSave = section.budget - projected;
-      paceBox.className = 'pace-box pace-good';
-      paceBox.textContent = `✅ On track to save ~${formatINR(projectedSave)} in ${section.name} this month.`;
+    if (e.type !== 'auth') {
+      document.getElementById('sections-grid').innerHTML = errorState('Could not load sections.');
     }
   }
-
-  // Transactions
-  renderTransactions(txns);
 }
 
-function renderTransactions(txns) {
-  const container = document.getElementById('tx-history');
-  const empty = document.getElementById('tx-empty');
+function render() {
+  const grid = document.getElementById('sections-grid');
+  const subtitle = document.getElementById('sections-subtitle');
 
-  if (!txns || txns.length === 0) {
-    empty.style.display = 'block';
+  subtitle.textContent = sections.length === 0
+    ? 'Create sections to organise your spending'
+    : `${sections.length} section${sections.length !== 1 ? 's' : ''}`;
+
+  if (sections.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <div class="empty-state-title">No sections yet</div>
+          <div class="empty-state-desc">Give your money a purpose. Create your first budget section.</div>
+          <button class="btn btn-primary" id="empty-add-btn">Create section</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('empty-add-btn')?.addEventListener('click', openModal);
     return;
   }
-  empty.style.display = 'none';
 
-  container.innerHTML = txns.map(tx => {
-    const isTopup = tx.type === 'topup';
+  grid.innerHTML = sections.map(sec => {
+    const remaining = getRemaining(sec.monthlyBudget, sec.spent);
+    const pctSpent  = getPctSpent(sec.monthlyBudget, sec.spent);
+    const colour    = sectionColour(sec.monthlyBudget, sec.spent);
+    const isDrained = remaining <= 0;
+
     return `
-    <div class="tx-item">
-      <div class="tx-icon" style="${isTopup ? 'background:var(--green-light);' : ''}">${isTopup ? '💰' : (tx.sectionEmoji || '💳')}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="tx-merchant">${tx.merchant}</div>
-        <div class="tx-section">${timeAgo(tx.createdAt)}${tx.isOverride ? ' · <span style="color:var(--orange);">Override</span>' : ''}${isTopup ? ' · <span style="color:var(--green);">Top-up</span>' : ''}</div>
+      <div class="section-card card-clickable" data-id="${sec._id}" tabindex="0" role="button" aria-label="${sec.name}: ${formatINR(remaining)} remaining">
+        <div class="section-card-header">
+          <span class="section-card-emoji">${sec.emoji || '📦'}</span>
+          <span class="section-status-dot ${colour}"></span>
+        </div>
+        <div class="section-card-name">${sec.name}</div>
+        <div class="section-card-remaining ${colour}">${isDrained ? '₹0' : formatINR(remaining)}</div>
+        <div class="section-card-detail">${pctSpent}% used · ${formatINR(sec.monthlyBudget)} budget</div>
+        <div class="progress-track">
+          <div class="progress-fill ${colour}" style="width:${pctSpent}%"></div>
+        </div>
       </div>
-      <div class="tx-amount" style="${isTopup ? 'color:var(--green);' : ''}">${isTopup ? '+' : '-'}${formatINR(tx.amount)}</div>
-    </div>
-  `;
+    `;
   }).join('');
 
+  grid.querySelectorAll('.section-card').forEach(card => {
+    const handler = () => navigate(`/pages/section-detail.html?id=${card.dataset.id}`);
+    card.addEventListener('click', handler);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') handler(); });
+  });
 }
 
-// ── Delete Section ─────────────────────────────────────────────────
-document.getElementById('btn-delete-section').addEventListener('click', () => {
-  const section = sectionData?.section;
-  if (!section) return;
-  const remaining = Math.max(0, section.budget - section.spent);
-  document.getElementById('delete-msg').innerHTML =
-    remaining > 0
-      ? `<strong>${formatINR(remaining)}</strong> remaining will be moved to your Savings Jar. This cannot be undone.`
-      : `This section has no remaining budget. Deleting it is permanent.`;
-  document.getElementById('delete-confirm-input').value = '';
-  document.getElementById('btn-delete-confirm').disabled = true;
-  document.getElementById('delete-overlay').classList.add('show');
-});
+function renderAllocationBar() {
+  const bar = document.getElementById('allocation-bar');
+  if (!userIncome || sections.length === 0) return;
 
-document.getElementById('delete-confirm-input').addEventListener('input', function() {
-  document.getElementById('btn-delete-confirm').disabled = this.value.trim() !== 'Delete';
-});
+  const totalAllocated = sections.reduce((s, sec) => s + (sec.monthlyBudget || 0), 0);
+  const pct = Math.min(100, Math.round((totalAllocated / userIncome) * 100));
+  const unallocated = Math.max(0, userIncome - totalAllocated);
 
-document.getElementById('btn-delete-cancel').addEventListener('click', () => {
-  document.getElementById('delete-overlay').classList.remove('show');
-});
-
-document.getElementById('btn-delete-confirm').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-delete-confirm');
-  btn.textContent = 'Deleting…';
-  btn.disabled = true;
-  try {
-    const res = await api('DELETE', `/sections/${sectionId}`);
-    toast(`Section deleted. ${res.swept > 0 ? formatINR(res.swept) + ' moved to Savings.' : ''}`, 'success');
-    navigate('/pages/dashboard.html');
-  } catch (e) {
-    toast('Failed to delete section: ' + e.message, 'error');
-    btn.textContent = 'Delete Section';
-    btn.disabled = false;
-  }
-});
-
-document.getElementById('delete-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
-});
-
-// ── Top Up Budget ──────────────────────────────────────────────────
-function openTopupModal() {
-  const section = sectionData?.section;
-  if (!section) return;
-  const remaining = Math.max(0, section.budget - section.spent);
-  const subtext = remaining <= 0
-    ? `${section.emoji} ${section.name} is at its limit. Add more to continue spending.`
-    : `${section.emoji} ${section.name} has ${formatINR(remaining)} left. Top up to increase the cap.`;
-  document.getElementById('topup-subtext').textContent = subtext;
-  document.getElementById('topup-amount').value = '';
-  document.getElementById('btn-topup-confirm').disabled = true;
-  document.getElementById('topup-overlay').classList.add('show');
-  setTimeout(() => document.getElementById('topup-amount').focus(), 350);
+  document.getElementById('alloc-text').textContent = `${formatINR(totalAllocated)} of ${formatINR(userIncome)} allocated`;
+  document.getElementById('alloc-fill').style.width = `${pct}%`;
+  bar.classList.remove('hidden');
 }
 
-document.getElementById('btn-topup-main').addEventListener('click', openTopupModal);
-document.getElementById('btn-topup-quick').addEventListener('click', openTopupModal);
+// ── Add Section Modal ─────────────────────────────────────────────
 
-document.getElementById('topup-amount').addEventListener('input', function() {
-  const val = parseFloat(this.value);
-  document.getElementById('btn-topup-confirm').disabled = !(val > 0);
-});
+function openModal() {
+  document.getElementById('inp-sec-name').value = '';
+  document.getElementById('inp-sec-emoji').value = '';
+  document.getElementById('inp-sec-budget').value = '';
+  clearErrors();
+  document.getElementById('add-section-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('inp-sec-name').focus(), 300);
+}
 
-// Quick-amount chips
-document.getElementById('quick-amounts').addEventListener('click', (e) => {
-  const chip = e.target.closest('.quick-chip');
-  if (!chip) return;
-  const amount = chip.dataset.amount;
-  document.getElementById('topup-amount').value = amount;
-  document.getElementById('btn-topup-confirm').disabled = false;
-  // Highlight selected chip
-  document.querySelectorAll('.quick-chip').forEach(c => c.style.cssText = '');
-  chip.style.cssText = 'border-color:var(--orange);color:var(--orange);background:var(--orange-light);';
-});
+function closeModal() {
+  document.getElementById('add-section-overlay').classList.remove('show');
+}
 
-document.getElementById('btn-topup-cancel').addEventListener('click', () => {
-  document.getElementById('topup-overlay').classList.remove('show');
-});
+function clearErrors() {
+  ['sec-name', 'sec-budget'].forEach(id => {
+    const el = document.getElementById(`err-${id}`);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
+  });
+  const formErr = document.getElementById('sec-form-error');
+  if (formErr) formErr.classList.add('hidden');
+}
 
-document.getElementById('topup-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
-});
+async function createSection() {
+  clearErrors();
+  const name   = document.getElementById('inp-sec-name').value.trim();
+  const emoji  = document.getElementById('inp-sec-emoji').value.trim();
+  const budget = Number(document.getElementById('inp-sec-budget').value);
 
-document.getElementById('btn-topup-confirm').addEventListener('click', async () => {
-  const amount = parseFloat(document.getElementById('topup-amount').value);
-  if (!amount || amount <= 0) return;
+  let valid = true;
+  if (!name) {
+    showErr('sec-name', 'Section name is required.');
+    valid = false;
+  }
+  if (!budget || budget < 1) {
+    showErr('sec-budget', 'Enter a valid monthly budget.');
+    valid = false;
+  }
+  if (!valid) return;
 
-  const btn = document.getElementById('btn-topup-confirm');
-  btn.textContent = 'Adding…';
-  btn.disabled = true;
+  const btn = document.getElementById('btn-sec-create');
+  btn.classList.add('btn-loading');
 
   try {
-    const res = await api('PATCH', `/sections/${sectionId}/topup`, { amount });
-    document.getElementById('topup-overlay').classList.remove('show');
-    toast(`✅ Added ${formatINR(amount)} to ${sectionData.section.name}!`, 'success');
-    // Reload section data to reflect the new budget
-    await loadSection();
-  } catch (e) {
-    toast('Top-up failed: ' + e.message, 'error');
-    btn.textContent = 'Add to Budget';
-    btn.disabled = false;
+    const sec = await api('POST', '/sections', { name, emoji, monthlyBudget: budget });
+    sections.unshift(sec);
+    render();
+    renderAllocationBar();
+    closeModal();
+    toast(`${name} section created.`, 'success');
+  } catch (err) {
+    const errEl = document.getElementById('sec-form-error');
+    errEl.textContent = err.message || 'Could not create section.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.classList.remove('btn-loading');
   }
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(`err-${id}`);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+  const inp = document.getElementById(`inp-${id}`);
+  if (inp) inp.classList.add('input-error');
+}
+
+// ── Events ───────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-add-section').addEventListener('click', openModal);
+  document.getElementById('btn-sec-cancel').addEventListener('click', closeModal);
+  document.getElementById('btn-sec-create').addEventListener('click', createSection);
+
+  // Close on overlay click
+  document.getElementById('add-section-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
 });
 
-loadSection();
+load();

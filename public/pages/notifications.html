@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Notifications</title>
+  <meta name="description" content="Your Splitr notifications and alerts.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Notifications</h1>
+            <p class="page-subtitle" id="notif-subtitle">Your alerts and updates</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-read-all" style="display:none;">Mark all read</button>
+        </div>
+
+        <!-- Notifications list -->
+        <div class="card card-sm" id="notif-card">
+          <div id="notif-list">
+            <div class="skeleton skeleton-text" style="margin-bottom:12px;"></div>
+            <div class="skeleton skeleton-text" style="margin-bottom:12px;"></div>
+            <div class="skeleton skeleton-text"></div>
+          </div>
+          <div id="notif-empty" class="hidden empty-state" style="padding:32px 0;">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+            </div>
+            <div class="empty-state-title">No notifications</div>
+            <div class="empty-state-desc">You're all caught up.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module">
+  import { api, timeAgo, toast } from '/js/utils.js';
+
+  let notifications = [];
+
+  async function load() {
+    try {
+      notifications = await api('GET', '/notifications');
+      notifications = notifications || [];
+      render();
+    } catch (e) {
+      if (e.type !== 'auth') {
+        document.getElementById('notif-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--n-400);">Could not load notifications.</div>';
+      }
+    }
+  }
+
+  function render() {
+    const list     = document.getElementById('notif-list');
+    const empty    = document.getElementById('notif-empty');
+    const subtitle = document.getElementById('notif-subtitle');
+    const readAllBtn = document.getElementById('btn-read-all');
+
+    const unread = notifications.filter(n => !n.isRead).length;
+    subtitle.textContent = unread > 0 ? `${unread} unread` : 'All caught up';
+
+    if (unread > 0) readAllBtn.style.display = '';
+
+    if (notifications.length === 0) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    list.innerHTML = notifications.map(n => `
+      <div class="notif-item" data-notif-id="${n._id}">
+        <div class="notif-dot ${n.isRead ? 'read' : ''}"></div>
+        <div class="notif-text">
+          <div class="notif-title ${n.isRead ? 'read' : ''}">${n.message || n.title || 'Notification'}</div>
+          <div class="notif-time">${timeAgo(n.createdAt)}</div>
+        </div>
+        <button class="icon-btn danger" data-del-notif="${n._id}" title="Delete" style="margin-left:4px;">
+          <svg viewBox="0 0 24 24"><polyline points="18 6 6 18"/><polyline points="6 6 18 18"/></svg>
+        </button>
+      </div>
+    `).join('');
+
+    // Mark as read on click
+    document.querySelectorAll('.notif-item').forEach(item => {
+      item.addEventListener('click', async e => {
+        if (e.target.closest('[data-del-notif]')) return;
+        const id = item.dataset.notifId;
+        const notif = notifications.find(n => n._id === id);
+        if (notif && !notif.isRead) {
+          try {
+            await api('PATCH', `/notifications/${id}/read`);
+            notif.isRead = true;
+            render();
+          } catch {}
+        }
+      });
+    });
+
+    // Delete
+    document.querySelectorAll('[data-del-notif]').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.delNotif;
+        btn.disabled = true;
+        try {
+          await api('DELETE', `/notifications/${id}`);
+          notifications = notifications.filter(n => n._id !== id);
+          render();
+        } catch (err) {
+          toast(err.message || 'Could not delete.', 'error');
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  document.getElementById('btn-read-all').addEventListener('click', async () => {
+    try {
+      await api('PATCH', '/notifications/mark-all-read');
+      notifications.forEach(n => n.isRead = true);
+      render();
+      document.getElementById('btn-read-all').style.display = 'none';
+    } catch (err) {
+      toast(err.message || 'Could not mark all as read.', 'error');
+    }
+  });
+
+  load();
+</script>
+</body>
+</html>

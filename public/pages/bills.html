@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Bills</title>
+  <meta name="description" content="Track your recurring bills and mark them as paid each month.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Bills</h1>
+            <p class="page-subtitle" id="bills-subtitle">Monthly recurring bills</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-bill">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add bill
+          </button>
+        </div>
+
+        <!-- Summary bar -->
+        <div id="bills-summary" class="hidden" style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="summary-card" style="flex:1;min-width:140px;">
+            <div class="summary-card-label">Total bills</div>
+            <div class="summary-card-value" id="sum-total">—</div>
+          </div>
+          <div class="summary-card" style="flex:1;min-width:140px;">
+            <div class="summary-card-label">Paid</div>
+            <div class="summary-card-value text-green" id="sum-paid">—</div>
+          </div>
+          <div class="summary-card" style="flex:1;min-width:140px;">
+            <div class="summary-card-label">Unpaid</div>
+            <div class="summary-card-value" id="sum-unpaid" style="color:var(--amber-600);">—</div>
+          </div>
+        </div>
+
+        <!-- Unpaid Bills -->
+        <div id="unpaid-section" class="hidden">
+          <div class="section-label">Unpaid this month</div>
+          <div class="card card-sm" style="margin-bottom:20px;">
+            <div id="unpaid-list"></div>
+          </div>
+        </div>
+
+        <!-- Paid Bills -->
+        <div id="paid-section" class="hidden">
+          <div class="section-label">Paid</div>
+          <div class="card card-sm" style="margin-bottom:20px;">
+            <div id="paid-list"></div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="bills-loading">
+          <div class="skeleton skeleton-block" style="height:60px;margin-bottom:8px;"></div>
+          <div class="skeleton skeleton-block" style="height:60px;margin-bottom:8px;"></div>
+          <div class="skeleton skeleton-block" style="height:60px;"></div>
+        </div>
+
+        <!-- Empty -->
+        <div id="bills-empty" class="hidden empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <div class="empty-state-title">No bills added</div>
+          <div class="empty-state-desc">Add recurring bills like rent, electricity, or subscriptions to track them each month.</div>
+          <button class="btn btn-primary" id="empty-add-bill">Add your first bill</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<!-- Add Bill Modal -->
+<div class="overlay" id="add-bill-overlay" role="dialog" aria-modal="true" aria-labelledby="add-bill-title">
+  <div class="bottom-sheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-title" id="add-bill-title">Add bill</div>
+    <div class="sheet-subtitle">Track a recurring monthly bill.</div>
+
+    <div class="input-group">
+      <label class="input-label" for="bill-name">Bill name</label>
+      <input type="text" id="bill-name" class="input" placeholder="e.g. Rent, Netflix, Electricity" autocomplete="off" maxlength="60">
+      <div class="input-error-msg" id="err-bill-name"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="bill-amount">Amount</label>
+      <div class="input-prefix-wrap">
+        <span class="input-prefix">₹</span>
+        <input type="number" id="bill-amount" class="input" placeholder="0" min="1" inputmode="numeric">
+      </div>
+      <div class="input-error-msg" id="err-bill-amount"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="bill-due">Due day (1–31)</label>
+      <input type="number" id="bill-due" class="input" placeholder="e.g. 5" min="1" max="31" inputmode="numeric">
+      <div class="input-hint">Day of month when this bill is due</div>
+      <div class="input-error-msg" id="err-bill-due"></div>
+    </div>
+
+    <div id="bill-form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-bill-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-bill-create" style="flex:2;">Add bill</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/bills.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Create account</title>
+  <meta name="description" content="Create your Splitr account and start managing your money by sections.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card page-enter" style="max-width:460px;">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <span class="auth-logo-text">Splitr</span>
+    </div>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Set up your sections and take control of where your money goes.</p>
+
+    <form id="register-form" novalidate>
+
+      <div id="form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:16px;"></div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-fullname">Full name</label>
+        <input
+          type="text"
+          id="inp-fullname"
+          name="fullName"
+          class="input"
+          placeholder="Anurag Yadav"
+          autocomplete="name"
+          required
+        >
+        <div class="input-error-msg" id="err-fullname"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-email">Email</label>
+        <input
+          type="email"
+          id="inp-email"
+          name="email"
+          class="input"
+          placeholder="you@example.com"
+          autocomplete="email"
+          inputmode="email"
+          required
+        >
+        <div class="input-error-msg" id="err-email"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-phone">Phone number <span style="color:var(--n-400);font-weight:400;">(optional)</span></label>
+        <input
+          type="tel"
+          id="inp-phone"
+          name="phoneNumber"
+          class="input"
+          placeholder="+91 98765 43210"
+          autocomplete="tel"
+          inputmode="tel"
+        >
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-password">Password</label>
+        <input
+          type="password"
+          id="inp-password"
+          name="password"
+          class="input"
+          placeholder="At least 8 characters"
+          autocomplete="new-password"
+          required
+          minlength="8"
+        >
+        <div class="input-error-msg" id="err-password"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-income">Monthly income</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">₹</span>
+          <input
+            type="number"
+            id="inp-income"
+            name="monthlyIncome"
+            class="input"
+            placeholder="45,000"
+            min="1"
+            inputmode="numeric"
+            required
+          >
+        </div>
+        <div class="input-hint">Used to track how much of your income is allocated.</div>
+        <div class="input-error-msg" id="err-income"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-register">Create account</button>
+
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/pages/login.html">Log in</a>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+  import { handleRegister } from '/js/auth.js';
+  import { requireGuest } from '/js/utils.js';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = '0';
+    document.body.style.transition = 'opacity 200ms ease';
+    requestAnimationFrame(() => { document.body.style.opacity = '1'; });
+
+    requireGuest();
+    document.getElementById('register-form').addEventListener('submit', handleRegister);
+  });
+</script>
+</body>
+</html>

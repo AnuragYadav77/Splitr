@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Activity</title>
+  <meta name="description" content="All your transactions — debit and credit across all sections.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Activity</h1>
+            <p class="page-subtitle" id="tx-subtitle">Your transactions</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-tx">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="pill-filter" id="filter-bar">
+          <button class="pill-filter-btn active" data-filter="all">All</button>
+          <button class="pill-filter-btn" data-filter="debit">Debits</button>
+          <button class="pill-filter-btn" data-filter="credit">Credits</button>
+        </div>
+
+        <!-- Section filter -->
+        <div style="margin-bottom:16px;">
+          <select class="input" id="section-filter" style="max-width:220px;padding:8px 12px;font-size:13px;">
+            <option value="">All sections</option>
+          </select>
+        </div>
+
+        <!-- Transactions list -->
+        <div class="card card-sm" id="tx-card">
+          <div class="tx-list" id="tx-list">
+            <div class="skeleton skeleton-text" style="margin-bottom:12px;"></div>
+            <div class="skeleton skeleton-text" style="margin-bottom:12px;"></div>
+            <div class="skeleton skeleton-text"></div>
+          </div>
+          <div id="tx-empty" class="hidden empty-state" style="padding:32px 0;">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+            <div class="empty-state-title">No transactions yet</div>
+            <div class="empty-state-desc">Log a payment to start tracking your spending.</div>
+            <button class="btn btn-primary" id="empty-add-btn">Add transaction</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div class="overlay" id="add-tx-overlay" role="dialog" aria-modal="true" aria-labelledby="add-tx-title">
+  <div class="bottom-sheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-title" id="add-tx-title">Add transaction</div>
+
+    <div class="input-group">
+      <label class="input-label" for="tx-merchant">Merchant / Description</label>
+      <input type="text" id="tx-merchant" class="input" placeholder="e.g. Swiggy, Salary" autocomplete="off" maxlength="80">
+      <div class="input-error-msg" id="err-tx-merchant"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="tx-amount">Amount</label>
+      <div class="input-prefix-wrap">
+        <span class="input-prefix">₹</span>
+        <input type="number" id="tx-amount" class="input" placeholder="0" min="0.01" inputmode="decimal" step="0.01">
+      </div>
+      <div class="input-error-msg" id="err-tx-amount"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="tx-section">Section</label>
+      <select id="tx-section" class="input">
+        <option value="">Select a section</option>
+      </select>
+      <div class="input-error-msg" id="err-tx-section"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">Direction</label>
+      <div style="display:flex;gap:10px;">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--n-200);border-radius:var(--r-sm);cursor:pointer;transition:all 0.15s;" id="lbl-debit">
+          <input type="radio" name="tx-direction" value="debit" checked style="accent-color:var(--indigo-600);">
+          <span style="font-size:13px;font-weight:600;">Debit</span>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--n-200);border-radius:var(--r-sm);cursor:pointer;transition:all 0.15s;" id="lbl-credit">
+          <input type="radio" name="tx-direction" value="credit" style="accent-color:var(--indigo-600);">
+          <span style="font-size:13px;font-weight:600;">Credit</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="tx-form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-tx-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-tx-create" style="flex:2;">Add transaction</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/transactions.js"></script>
+</body>
+</html>

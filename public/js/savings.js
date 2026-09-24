@@ -1,252 +1,240 @@
-// ── savings.js ────────────────────────────────────────────────────
-import { formatINR, formatDate, api, navigate, toast, monthName } from './utils.js';
+// ── savings.js — Savings Goals page ───────────────────────────────
+import { api, formatINR, formatDate, toast, errorState } from './utils.js';
 
-document.getElementById('back-btn').addEventListener('click', () => navigate('/pages/dashboard.html'));
+let goals = [];
+let depositType = 'deposit';
 
-let savingsData = null;
-
-async function loadSavings() {
+async function load() {
   try {
-    const data = await api('GET', '/savings');
-    savingsData = data;
-    render(data);
+    goals = await api('GET', '/savings-goals');
+    goals = goals || [];
+    render();
   } catch (e) {
-    toast('Could not load savings', 'error');
+    if (e.type !== 'auth') {
+      document.getElementById('goals-grid').innerHTML = errorState('Could not load savings goals.');
+    }
   }
 }
 
-function render(data) {
-  const balance = data.balance || 0;
-  document.getElementById('savings-balance').textContent = formatINR(balance);
+function render() {
+  const grid  = document.getElementById('goals-grid');
+  const empty = document.getElementById('goals-empty');
 
-  // Show withdraw FAB if balance > 0
-  const fab = document.getElementById('withdraw-fab');
-  fab.style.display = balance > 0 ? 'block' : 'none';
-
-  // Goal card
-  renderGoalCard(data.goal, balance);
-
-  // Chart
-  renderChart(data.history || []);
-
-  // History list
-  renderHistory(data.history || []);
-}
-
-function renderGoalCard(goal, balance) {
-  const card = document.getElementById('goal-card');
-
-  if (!goal) {
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--slate-700);margin-bottom:4px;">No goal set</div>
-          <div style="font-size:12px;color:var(--slate-400);">Set a target to stay motivated.</div>
-        </div>
-        <button id="btn-set-goal" style="padding:8px 16px;border-radius:10px;background:var(--orange-light);color:var(--orange);border:none;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">
-          Set Goal 🎯
-        </button>
-      </div>
-    `;
-    document.getElementById('btn-set-goal').addEventListener('click', openGoalSheet);
-    return;
-  }
-
-  const pct = Math.min(100, (balance / goal.target) * 100);
-  const remaining = Math.max(0, goal.target - balance);
-
-  card.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--slate-800);">🎯 ${goal.name}</div>
-        <div style="font-size:12px;color:var(--slate-400);">Target: ${formatINR(goal.target)}</div>
-      </div>
-      <button id="btn-edit-goal" style="padding:6px 12px;border-radius:8px;background:var(--slate-100);color:var(--slate-600);border:none;cursor:pointer;font-size:11px;font-weight:600;">
-        Edit
-      </button>
-    </div>
-    <div class="goal-progress-track">
-      <div class="goal-progress-fill" id="goal-fill" style="width:0%"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;">
-      <span style="color:var(--green);font-weight:600;">${Math.round(pct)}% reached</span>
-      <span style="color:var(--slate-400);">${remaining > 0 ? formatINR(remaining) + ' to go' : '🎉 Goal reached!'}</span>
-    </div>
-  `;
-  // Animate
-  setTimeout(() => {
-    const fill = document.getElementById('goal-fill');
-    if (fill) fill.style.width = pct + '%';
-  }, 100);
-
-  document.getElementById('btn-edit-goal').addEventListener('click', openGoalSheet);
-}
-
-function renderChart(history) {
-  const chart = document.getElementById('savings-chart');
-  const sweeps = history
-    .filter(h => h.type === 'month-sweep' || h.type === 'sweep')
-    .slice(-6);
-
-  if (sweeps.length === 0) {
-    chart.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--slate-300);font-size:13px;">No sweep history yet.</div>`;
-    return;
-  }
-
-  const maxAmt = Math.max(...sweeps.map(s => s.amount), 1);
-
-  chart.innerHTML = sweeps.map((s, i) => {
-    const heightPct = Math.max(8, (s.amount / maxAmt) * 100);
-    const isLast = i === sweeps.length - 1;
-    const d = new Date(s.createdAt);
-    const label = d.toLocaleDateString('en-IN', { month: 'short' });
-    return `
-      <div class="chart-bar-wrap">
-        <div class="chart-bar-amount">${formatINR(s.amount)}</div>
-        <div class="chart-bar${isLast ? ' current' : ''}" style="height:${heightPct}%"></div>
-        <div class="chart-bar-label">${label}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderHistory(history) {
-  const list = document.getElementById('history-list');
-  const empty = document.getElementById('history-empty');
-
-  if (!history || history.length === 0) {
+  if (goals.length === 0) {
+    grid.innerHTML = '';
     empty.classList.remove('hidden');
+    document.getElementById('savings-summary').classList.add('hidden');
     return;
   }
+
   empty.classList.add('hidden');
 
-  const sorted = [...history].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Summary
+  const totalSaved = goals.reduce((s, g) => s + (g.currentAmount || 0), 0);
+  document.getElementById('total-saved').textContent = formatINR(totalSaved);
+  document.getElementById('goals-count').textContent = `Across ${goals.length} goal${goals.length !== 1 ? 's' : ''}`;
+  document.getElementById('savings-summary').classList.remove('hidden');
 
-  list.innerHTML = sorted.map(item => {
-    const isWithdraw = item.type === 'withdrawal';
-    const icon = isWithdraw ? '💸' : '🪙';
-    const iconClass = isWithdraw ? 'withdraw' : 'sweep';
-    const amtColour = isWithdraw ? 'var(--red)' : 'var(--green)';
-    const amtPrefix = isWithdraw ? '-' : '+';
-    const label = isWithdraw
-      ? (item.note || 'Withdrawal')
-      : (item.month ? `${monthName(item.month)} sweep` : (item.note || 'Sweep'));
+  grid.innerHTML = goals.map(g => {
+    const pct  = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
+    const done = g.isCompleted || pct >= 100;
 
     return `
-      <div class="history-item">
-        <div class="history-icon ${iconClass}">${icon}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:14px;color:var(--slate-800);">${label}</div>
-          <div style="font-size:11px;color:var(--slate-400);">${formatDate(item.createdAt)}</div>
+      <div class="goal-card">
+        ${done ? '<div class="goal-complete-badge"><svg viewBox="0 0 16 16" width="12" style="stroke:#16A34A;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="2 8 6 12 14 4"/></svg>Goal reached</div>' : ''}
+        <div class="goal-card-name">${g.name || 'Unnamed Goal'}</div>
+        <div class="goal-card-amounts">
+          <span class="goal-current">${formatINR(g.currentAmount)}</span>
+          <span class="goal-target"> / ${formatINR(g.targetAmount)}</span>
         </div>
-        <div style="font-weight:700;font-size:15px;color:${amtColour};flex-shrink:0;">
-          ${amtPrefix}${formatINR(item.amount)}
+        <div class="goal-progress-track">
+          <div class="goal-progress-fill" style="width:${pct}%;background:${done ? 'var(--green-500)' : 'var(--indigo-500)'};"></div>
+        </div>
+        <div class="goal-meta">
+          <span>${pct}% complete</span>
+          ${g.deadline ? `<span>By ${formatDate(g.deadline)}</span>` : ''}
+        </div>
+        <div class="card-actions" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--n-100);">
+          <button class="btn btn-secondary" data-dep-id="${g._id}" data-dep-name="${g.name}" data-dep-current="${g.currentAmount}" data-dep-target="${g.targetAmount}">Add / Withdraw</button>
+          <button class="icon-btn danger" data-del-goal-id="${g._id}" title="Delete goal">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+          </button>
         </div>
       </div>
     `;
   }).join('');
+
+  // Deposit/withdraw buttons
+  grid.querySelectorAll('[data-dep-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id     = btn.dataset.depId;
+      const name   = btn.dataset.depName;
+      const current = Number(btn.dataset.depCurrent);
+      const target  = Number(btn.dataset.depTarget);
+      openDepositModal(id, name, current, target);
+    });
+  });
+
+  // Delete goal buttons
+  grid.querySelectorAll('[data-del-goal-id]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.delGoalId;
+      if (!confirm('Delete this savings goal?')) return;
+      btn.disabled = true;
+      try {
+        await api('DELETE', `/savings-goals/${id}`);
+        goals = goals.filter(g => g._id !== id);
+        render();
+        toast('Goal deleted.', 'success');
+      } catch (err) {
+        toast(err.message || 'Could not delete goal.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
-// ── Goal Sheet ─────────────────────────────────────────────────────
-function openGoalSheet() {
-  const goal = savingsData?.goal;
-  if (goal) {
-    document.getElementById('goal-name').value = goal.name || '';
-    document.getElementById('goal-target').value = goal.target || '';
-  } else {
-    document.getElementById('goal-name').value = '';
-    document.getElementById('goal-target').value = '';
-  }
-  document.getElementById('goal-overlay').classList.add('show');
+// ── Create Goal ───────────────────────────────────────────────────
+
+function openCreateModal() {
+  document.getElementById('goal-name').value     = '';
+  document.getElementById('goal-target').value   = '';
+  document.getElementById('goal-deadline').value = '';
+  ['goal-name', 'goal-target'].forEach(id => {
+    const el = document.getElementById(`err-${id}`);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
+  });
+  document.getElementById('goal-form-error').classList.add('hidden');
+  document.getElementById('add-goal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('goal-name').focus(), 300);
 }
 
-document.getElementById('btn-goal-cancel').addEventListener('click', () => {
-  document.getElementById('goal-overlay').classList.remove('show');
-});
+function closeCreateModal() {
+  document.getElementById('add-goal-overlay').classList.remove('show');
+}
 
-document.getElementById('btn-goal-save').addEventListener('click', async () => {
-  const name = document.getElementById('goal-name').value.trim();
-  const target = parseFloat(document.getElementById('goal-target').value);
-  if (!name || !target || target <= 0) {
-    toast('Please enter a goal name and target amount.', 'warning');
-    return;
-  }
+async function createGoal() {
+  const name     = document.getElementById('goal-name').value.trim();
+  const target   = Number(document.getElementById('goal-target').value);
+  const deadline = document.getElementById('goal-deadline').value;
+
+  let valid = true;
+  ['goal-name', 'goal-target'].forEach(id => {
+    const el = document.getElementById(`err-${id}`); if (el) { el.textContent=''; el.classList.remove('show'); }
+  });
+
+  if (!name) { showErr('goal-name', 'Goal name required.'); valid = false; }
+  if (!target || target < 1) { showErr('goal-target', 'Enter a valid target amount.'); valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('btn-goal-create');
+  btn.classList.add('btn-loading');
+
   try {
-    await api('POST', '/savings/goal', { name, target });
-    toast('Goal saved! 🎯', 'success');
-    document.getElementById('goal-overlay').classList.remove('show');
-    loadSavings();
-  } catch (e) {
-    toast('Failed to save goal', 'error');
-  }
-});
-
-document.getElementById('btn-goal-clear').addEventListener('click', async () => {
-  try {
-    await api('POST', '/savings/goal', {});
-    toast('Goal cleared.', 'info');
-    document.getElementById('goal-overlay').classList.remove('show');
-    loadSavings();
-  } catch (e) {
-    toast('Failed to clear goal', 'error');
-  }
-});
-
-document.getElementById('goal-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
-});
-
-// ── Withdraw Sheet ─────────────────────────────────────────────────
-document.getElementById('btn-withdraw').addEventListener('click', () => {
-  const balance = savingsData?.balance || 0;
-  document.getElementById('withdraw-avail-msg').textContent = `Available: ${formatINR(balance)}`;
-  document.getElementById('withdraw-amount').value = '';
-  document.getElementById('withdraw-reason').value = '';
-  document.getElementById('withdraw-err').classList.add('hidden');
-  document.getElementById('withdraw-overlay').classList.add('show');
-});
-
-document.getElementById('btn-withdraw-cancel').addEventListener('click', () => {
-  document.getElementById('withdraw-overlay').classList.remove('show');
-});
-
-document.getElementById('btn-withdraw-confirm').addEventListener('click', async () => {
-  const amount = parseFloat(document.getElementById('withdraw-amount').value);
-  const reason = document.getElementById('withdraw-reason').value.trim();
-  const balance = savingsData?.balance || 0;
-  const errEl = document.getElementById('withdraw-err');
-  errEl.classList.add('hidden');
-
-  if (!amount || amount <= 0) {
-    errEl.textContent = 'Please enter a valid amount.';
+    const body = { name, targetAmount: target };
+    if (deadline) body.deadline = deadline;
+    const goal = await api('POST', '/savings-goals', body);
+    goals.unshift(goal);
+    render();
+    closeCreateModal();
+    toast(`${name} goal created.`, 'success');
+  } catch (err) {
+    const errEl = document.getElementById('goal-form-error');
+    errEl.textContent = err.message || 'Could not create goal.';
     errEl.classList.remove('hidden');
-    return;
-  }
-  if (amount > balance) {
-    errEl.textContent = `You only have ${formatINR(balance)} available.`;
-    errEl.classList.remove('hidden');
-    return;
-  }
-
-  const btn = document.getElementById('btn-withdraw-confirm');
-  btn.textContent = 'Processing…';
-  btn.disabled = true;
-
-  try {
-    await api('POST', '/savings/withdraw', { amount, reason: reason || 'Withdrawal' });
-    toast(`${formatINR(amount)} withdrawn from savings.`, 'success');
-    document.getElementById('withdraw-overlay').classList.remove('show');
-    loadSavings();
-  } catch (e) {
-    toast(e.data?.error || 'Withdrawal failed', 'error');
   } finally {
-    btn.textContent = 'Withdraw';
-    btn.disabled = false;
+    btn.classList.remove('btn-loading');
+  }
+}
+
+// ── Deposit / Withdraw ────────────────────────────────────────────
+
+function openDepositModal(id, name, current, target) {
+  document.getElementById('deposit-goal-id').value = id;
+  document.getElementById('deposit-title').textContent = name;
+  document.getElementById('deposit-subtitle').textContent =
+    `${formatINR(current)} saved of ${formatINR(target)}`;
+  document.getElementById('deposit-amount').value = '';
+  document.getElementById('err-deposit-amount').textContent = '';
+  document.getElementById('err-deposit-amount').classList.remove('show');
+  document.getElementById('deposit-error').classList.add('hidden');
+  depositType = 'deposit';
+  document.getElementById('tab-deposit').classList.add('active');
+  document.getElementById('tab-withdraw').classList.remove('active');
+  document.getElementById('deposit-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('deposit-amount').focus(), 300);
+}
+
+function closeDepositModal() {
+  document.getElementById('deposit-overlay').classList.remove('show');
+}
+
+document.getElementById('tab-deposit').addEventListener('click', () => {
+  depositType = 'deposit';
+  document.getElementById('tab-deposit').classList.add('active');
+  document.getElementById('tab-withdraw').classList.remove('active');
+});
+
+document.getElementById('tab-withdraw').addEventListener('click', () => {
+  depositType = 'withdraw';
+  document.getElementById('tab-withdraw').classList.add('active');
+  document.getElementById('tab-deposit').classList.remove('active');
+});
+
+document.getElementById('btn-deposit-confirm').addEventListener('click', async () => {
+  const id     = document.getElementById('deposit-goal-id').value;
+  const amount = Number(document.getElementById('deposit-amount').value);
+
+  if (!amount || amount < 1) {
+    const el = document.getElementById('err-deposit-amount');
+    el.textContent = 'Enter a valid amount.';
+    el.classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('btn-deposit-confirm');
+  btn.classList.add('btn-loading');
+
+  try {
+    const url = depositType === 'deposit'
+      ? `/savings-goals/${id}/deposit`
+      : `/savings-goals/${id}/withdraw`;
+    const updated = await api('POST', url, { amount });
+
+    // Update local state
+    const idx = goals.findIndex(g => g._id === id);
+    if (idx !== -1) goals[idx] = updated;
+    render();
+    closeDepositModal();
+    toast(depositType === 'deposit' ? `${formatINR(amount)} deposited.` : `${formatINR(amount)} withdrawn.`, 'success');
+  } catch (err) {
+    const errEl = document.getElementById('deposit-error');
+    errEl.textContent = err.message || 'Could not update goal.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.classList.remove('btn-loading');
   }
 });
 
-document.getElementById('withdraw-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
+function showErr(id, msg) {
+  const el = document.getElementById(`err-${id}`);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+
+document.getElementById('btn-add-goal').addEventListener('click', openCreateModal);
+document.getElementById('empty-add-goal')?.addEventListener('click', openCreateModal);
+document.getElementById('btn-goal-cancel').addEventListener('click', closeCreateModal);
+document.getElementById('btn-goal-create').addEventListener('click', createGoal);
+document.getElementById('btn-deposit-cancel').addEventListener('click', closeDepositModal);
+
+['add-goal-overlay', 'deposit-overlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+  });
 });
 
-loadSavings();
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach(el => el.classList.remove('show'));
+});
+
+load();

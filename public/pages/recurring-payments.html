@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Recurring Payments</title>
+  <meta name="description" content="Manage your recurring subscriptions and automated payments.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Recurring</h1>
+            <p class="page-subtitle">Subscriptions and automated payments</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-rec">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+
+        <!-- Upcoming section -->
+        <div id="upcoming-section" class="hidden">
+          <div class="section-label">Due soon</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;" id="upcoming-list"></div>
+        </div>
+
+        <!-- All payments -->
+        <div class="section-label" id="all-label">All recurring payments</div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="rec-list">
+          <div class="skeleton skeleton-block" style="height:70px;"></div>
+          <div class="skeleton skeleton-block" style="height:70px;"></div>
+        </div>
+
+        <div id="rec-empty" class="hidden empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          </div>
+          <div class="empty-state-title">No recurring payments</div>
+          <div class="empty-state-desc">Add subscriptions and automated payments to track them.</div>
+          <button class="btn btn-primary" id="empty-add-rec">Add first payment</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<!-- Add Recurring Modal -->
+<div class="overlay" id="add-rec-overlay" role="dialog" aria-modal="true" aria-labelledby="add-rec-title">
+  <div class="bottom-sheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-title" id="add-rec-title">Add recurring payment</div>
+
+    <div class="input-group">
+      <label class="input-label" for="rec-name">Name</label>
+      <input type="text" id="rec-name" class="input" placeholder="e.g. Netflix, Gym, Insurance" maxlength="60">
+      <div class="input-error-msg" id="err-rec-name"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="rec-amount">Amount</label>
+      <div class="input-prefix-wrap">
+        <span class="input-prefix">₹</span>
+        <input type="number" id="rec-amount" class="input" placeholder="0" min="1" inputmode="numeric">
+      </div>
+      <div class="input-error-msg" id="err-rec-amount"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="rec-freq">Frequency</label>
+      <select id="rec-freq" class="input">
+        <option value="monthly">Monthly</option>
+        <option value="weekly">Weekly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="rec-date">Next due date</label>
+      <input type="date" id="rec-date" class="input">
+      <div class="input-error-msg" id="err-rec-date"></div>
+    </div>
+
+    <div id="rec-form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="btn-rec-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-rec-create" style="flex:2;">Add payment</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/recurring.js"></script>
+</body>
+</html>

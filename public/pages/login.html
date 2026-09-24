@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Log in</title>
+  <meta name="description" content="Log in to your Splitr account.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card page-enter">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <span class="auth-logo-text">Splitr</span>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Log in to see your sections and remaining budgets.</p>
+
+    <form id="login-form" novalidate>
+
+      <div id="form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:16px;"></div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-email">Email</label>
+        <input
+          type="email"
+          id="inp-email"
+          name="email"
+          class="input"
+          placeholder="you@example.com"
+          autocomplete="email"
+          inputmode="email"
+          required
+        >
+        <div class="input-error-msg" id="err-email"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="inp-password">Password</label>
+        <input
+          type="password"
+          id="inp-password"
+          name="password"
+          class="input"
+          placeholder="Your password"
+          autocomplete="current-password"
+          required
+        >
+        <div class="input-error-msg" id="err-password"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-login">Log in</button>
+
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="/pages/register.html">Create one</a>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+  import { handleLogin } from '/js/auth.js';
+  import { requireGuest } from '/js/utils.js';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Fade in
+    document.body.style.opacity = '0';
+    document.body.style.transition = 'opacity 200ms ease';
+    requestAnimationFrame(() => { document.body.style.opacity = '1'; });
+
+    requireGuest();
+    document.getElementById('login-form').addEventListener('submit', handleLogin);
+  });
+</script>
+</body>
+</html>

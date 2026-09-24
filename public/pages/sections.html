@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — Sections</title>
+  <meta name="description" content="Manage your budget sections — see remaining budgets and spending progress.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Sections</h1>
+            <p class="page-subtitle" id="sections-subtitle">Your monthly budget envelopes</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-section">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add section
+          </button>
+        </div>
+
+        <!-- Overall allocation bar -->
+        <div id="allocation-bar" class="hidden card card-sm" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:600;color:var(--n-700);">Budget allocation</div>
+            <div style="font-size:12px;color:var(--n-400);" id="alloc-text"></div>
+          </div>
+          <div class="progress-track" style="height:6px;">
+            <div class="progress-fill indigo" id="alloc-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Sections grid -->
+        <div class="sections-grid" id="sections-grid">
+          <div class="card" style="min-height:130px;"><div class="skeleton" style="height:130px;border-radius:var(--r-md);"></div></div>
+          <div class="card" style="min-height:130px;"><div class="skeleton" style="height:130px;border-radius:var(--r-md);"></div></div>
+          <div class="card" style="min-height:130px;"><div class="skeleton" style="height:130px;border-radius:var(--r-md);"></div></div>
+          <div class="card" style="min-height:130px;"><div class="skeleton" style="height:130px;border-radius:var(--r-md);"></div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<!-- Add Section Modal -->
+<div class="overlay" id="add-section-overlay" role="dialog" aria-modal="true" aria-labelledby="add-section-title">
+  <div class="bottom-sheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-title" id="add-section-title">New section</div>
+    <div class="sheet-subtitle">Create a budget envelope for a spending category.</div>
+
+    <div class="input-group">
+      <label class="input-label" for="inp-sec-name">Section name</label>
+      <input type="text" id="inp-sec-name" class="input" placeholder="e.g. Food, Transport, Fun" autocomplete="off" maxlength="40">
+      <div class="input-error-msg" id="err-sec-name"></div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="inp-sec-emoji">Icon (emoji)</label>
+      <input type="text" id="inp-sec-emoji" class="input" placeholder="Paste an emoji" maxlength="4" style="font-size:20px;" value="">
+      <div class="input-hint">Paste any emoji from your keyboard</div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label" for="inp-sec-budget">Monthly budget</label>
+      <div class="input-prefix-wrap">
+        <span class="input-prefix">₹</span>
+        <input type="number" id="inp-sec-budget" class="input" placeholder="e.g. 5000" min="1" inputmode="numeric">
+      </div>
+      <div class="input-error-msg" id="err-sec-budget"></div>
+    </div>
+
+    <div id="sec-form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-secondary" id="btn-sec-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-sec-create" style="flex:2;">Create section</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module" src="/js/sections.js"></script>
+</body>
+</html>

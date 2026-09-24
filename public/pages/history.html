@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splitr — History</title>
+  <meta name="description" content="Monthly history of your spending and savings.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="sidebar-container"></div>
+
+  <div class="main">
+    <div id="mobile-header-container"></div>
+    <div class="page-wrap">
+      <div class="page-inner page-enter">
+
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">History</h1>
+            <p class="page-subtitle">Monthly spending records</p>
+          </div>
+        </div>
+
+        <!-- History list -->
+        <div id="history-list">
+          <div class="skeleton skeleton-block" style="height:60px;margin-bottom:10px;"></div>
+          <div class="skeleton skeleton-block" style="height:60px;margin-bottom:10px;"></div>
+          <div class="skeleton skeleton-block" style="height:60px;"></div>
+        </div>
+
+        <div id="history-empty" class="hidden empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="empty-state-title">No history yet</div>
+          <div class="empty-state-desc">Your monthly snapshots will appear here once you complete your first month.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-container"></div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module" src="/js/app.js"></script>
+<script type="module">
+  import { api, formatINR, monthName, errorState } from '/js/utils.js';
+
+  async function load() {
+    try {
+      const history = await api('GET', '/history');
+      render(history || []);
+    } catch (e) {
+      if (e.type !== 'auth') {
+        document.getElementById('history-list').innerHTML = errorState('Could not load history.');
+      }
+    }
+  }
+
+  function render(history) {
+    const list  = document.getElementById('history-list');
+    const empty = document.getElementById('history-empty');
+
+    if (!history || history.length === 0) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    list.innerHTML = history.map(h => `
+      <div class="history-month">
+        <div class="history-month-header" role="button" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div>
+            <div class="history-month-title">${monthName(h.month)} ${h.year}</div>
+            <div class="history-month-summary">
+              Spent ${formatINR(h.totalSpent || 0)} · Saved ${formatINR(h.totalSaved || 0)}
+            </div>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:var(--n-300);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="history-month-body">
+          <div class="history-stat-row">
+            <span>Total income</span>
+            <span class="font-bold">${formatINR(h.totalIncome || 0)}</span>
+          </div>
+          <div class="history-stat-row">
+            <span>Total spent</span>
+            <span class="font-bold text-red">${formatINR(h.totalSpent || 0)}</span>
+          </div>
+          <div class="history-stat-row">
+            <span>Total saved</span>
+            <span class="font-bold text-green">${formatINR(h.totalSaved || 0)}</span>
+          </div>
+          <div class="history-stat-row">
+            <span>Swept to savings</span>
+            <span class="font-bold text-indigo">${formatINR(h.sweptToSavings || 0)}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  load();
+</script>
+</body>
+</html>
