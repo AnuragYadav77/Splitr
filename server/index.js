@@ -1,22 +1,17 @@
-import dotenv from "dotenv/config";
-import mongoose from "mongoose";
+import "dotenv/config";
 import { app } from "./app.js";
-
-
+import { connectDB } from "./config/database.js";
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB and start listening for requests
-mongoose
-    .connect(process.env.MONGODB_URI)
+connectDB()
     .then(() => {
-        console.log("✅ MongoDB connected successfully");
         app.listen(PORT, () => {
             console.log(`✅ Splitr server running at http://localhost:${PORT}`);
             console.log(`   Open http://localhost:${PORT} in your browser`);
         });
     })
-    .catch((err) => {
-        console.error("❌ MongoDB connection error:", err.message);
+    .catch((error) => {
+        console.error("❌ Server startup error:", error.message);
         process.exit(1);
     });
