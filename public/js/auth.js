@@ -113,16 +113,8 @@ export async function handleForgotPassword(e) {
     const promptView = document.getElementById('forgot-prompt-view');
     const sentView = document.getElementById('forgot-sent-view');
     const sentEmailDisplay = document.getElementById('forgot-sent-email-display');
-    const devLinkWrap = document.getElementById('forgot-dev-link-wrap');
-    const devResetBtn = document.getElementById('forgot-dev-reset-btn');
 
     if (sentEmailDisplay) sentEmailDisplay.textContent = email;
-
-    if (res?.resetUrl && devLinkWrap && devResetBtn) {
-      devResetBtn.href = res.resetUrl;
-      devLinkWrap.classList.remove('hidden');
-    }
-
     if (promptView) promptView.classList.add('hidden');
     if (sentView) sentView.classList.remove('hidden');
 

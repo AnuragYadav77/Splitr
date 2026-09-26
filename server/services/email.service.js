@@ -5,14 +5,40 @@ let cachedTransporter = null;
 async function getTransporter() {
   if (cachedTransporter) return cachedTransporter;
 
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+  const emailPass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
+  if (emailUser && emailPass) {
+    const isGmail = (process.env.EMAIL_SERVICE || "").toLowerCase() === "gmail" || emailUser.includes("@gmail.com");
+    if (isGmail && !process.env.SMTP_HOST) {
+      cachedTransporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: emailUser,
+          pass: emailPass,
+        },
+      });
+      console.log("📨 Configured Gmail SMTP for:", emailUser);
+    } else {
+      cachedTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: emailUser,
+          pass: emailPass,
+        },
+      });
+      console.log("📨 Configured custom SMTP for:", emailUser);
+    }
+  } else if (process.env.SMTP_HOST) {
     cachedTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === "true",
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: emailUser,
+        pass: emailPass,
       },
     });
   } else {

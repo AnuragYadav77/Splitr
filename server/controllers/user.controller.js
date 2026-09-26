@@ -156,10 +156,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                {
-                    resetUrl,
-                    previewUrl: emailResult.previewUrl
-                },
+                {},
                 "A password reset link has been sent to your email address."
             )
         );
@@ -174,25 +171,18 @@ export const resetPassword = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Password must be at least 8 characters long");
     }
 
-    let user = null;
+    if (!token) {
+        throw new ApiError(400, "Invalid reset request. Password reset token is required.");
+    }
 
-    if (token) {
-        const hashedToken = crypto.createHash("sha256").update(token.trim()).digest("hex");
-        user = await User.findOne({
-            resetPasswordToken: hashedToken,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
+    const hashedToken = crypto.createHash("sha256").update(token.trim()).digest("hex");
+    const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: Date.now() }
+    });
 
-        if (!user) {
-            throw new ApiError(400, "Password reset link is invalid or has expired. Please request a new one.");
-        }
-    } else if (email) {
-        user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) {
-            throw new ApiError(404, "No account found with this email address");
-        }
-    } else {
-        throw new ApiError(400, "Invalid reset request. Token is required.");
+    if (!user) {
+        throw new ApiError(400, "Password reset link is invalid or has expired. Please request a new one from the login page.");
     }
 
     user.password = newPassword;
