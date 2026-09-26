@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — Log in</title>
   <meta name="description" content="Log in to your Splitr account.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -14,7 +15,7 @@
     <!-- Logo -->
     <div class="auth-logo">
       <div class="auth-logo-icon">
-        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <img src="/logo.png" alt="Splitr">
       </div>
       <span class="auth-logo-text">Splitr</span>
     </div>
@@ -42,7 +43,10 @@
       </div>
 
       <div class="input-group">
-        <label class="input-label" for="inp-password">Password</label>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label class="input-label" for="inp-password" style="margin-bottom:0;">Password</label>
+          <button type="button" id="btn-open-forgot" style="background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--indigo-600);cursor:pointer;font-family:inherit;">Forgot password?</button>
+        </div>
         <input
           type="password"
           id="inp-password"
@@ -66,9 +70,67 @@
   </div>
 </div>
 
+<!-- Forgot Password Modal -->
+<div class="overlay" id="forgot-password-overlay" role="dialog" aria-modal="true" aria-labelledby="forgot-modal-title">
+  <div class="bottom-sheet" style="max-width:440px;">
+    <div class="sheet-drag-handle"></div>
+
+    <!-- View 1: Email Prompt Form -->
+    <div id="forgot-prompt-view">
+      <div class="sheet-title" id="forgot-modal-title">Reset your password</div>
+      <div class="sheet-subtitle">Enter your registered email address and we will send you a password reset link.</div>
+
+      <form id="forgot-password-form" novalidate>
+        <div id="forgot-form-error" class="hidden" style="background:var(--red-50);border:1px solid var(--red-100);color:var(--red-600);font-size:13px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;"></div>
+
+        <div class="input-group">
+          <label class="input-label" for="forgot-email">Registered Email</label>
+          <input
+            type="email"
+            id="forgot-email"
+            class="input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            inputmode="email"
+            required
+          >
+          <div class="input-error-msg" id="err-forgot-email"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button type="button" class="btn btn-secondary" id="btn-forgot-cancel" style="flex:1;">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-forgot-submit" style="flex:2;">Send Reset Link</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- View 2: Confirmation / Sent State -->
+    <div id="forgot-sent-view" class="hidden" style="text-align:center;padding:10px 0 6px;">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--indigo-50);color:var(--indigo-600);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">
+        ✉️
+      </div>
+      <h2 style="font-size:18px;font-weight:700;color:var(--n-900);margin-bottom:8px;">Check your email</h2>
+      <p style="font-size:13px;color:var(--n-600);line-height:1.5;margin-bottom:18px;">
+        We've sent a password reset link to <strong id="forgot-sent-email-display" style="color:var(--n-900);"></strong>.<br>
+        Please check your inbox (and spam folder) to set your new password.
+      </p>
+
+      <div id="forgot-dev-link-wrap" class="hidden" style="margin-bottom:14px;">
+        <a href="#" id="forgot-dev-reset-btn" class="btn btn-secondary btn-full" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>Open Reset Link</span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+        </a>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-full" id="btn-forgot-done">Done</button>
+    </div>
+
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script type="module">
-  import { handleLogin } from '/js/auth.js';
+  import { handleLogin, handleForgotPassword } from '/js/auth.js';
   import { requireGuest } from '/js/utils.js';
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -79,6 +141,45 @@
 
     requireGuest();
     document.getElementById('login-form').addEventListener('submit', handleLogin);
+
+    // Forgot password modal controls
+    const forgotOverlay = document.getElementById('forgot-password-overlay');
+    const openForgotBtn = document.getElementById('btn-open-forgot');
+    const cancelForgotBtn = document.getElementById('btn-forgot-cancel');
+    const doneForgotBtn = document.getElementById('btn-forgot-done');
+    const forgotForm = document.getElementById('forgot-password-form');
+    const forgotEmail = document.getElementById('forgot-email');
+    const loginEmail = document.getElementById('inp-email');
+    const promptView = document.getElementById('forgot-prompt-view');
+    const sentView = document.getElementById('forgot-sent-view');
+
+    function openForgotModal() {
+      if (loginEmail?.value.trim()) {
+        forgotEmail.value = loginEmail.value.trim();
+      }
+      document.getElementById('forgot-form-error').classList.add('hidden');
+      promptView.classList.remove('hidden');
+      sentView.classList.add('hidden');
+      forgotOverlay.classList.add('show');
+      setTimeout(() => forgotEmail.focus(), 250);
+    }
+
+    function closeForgotModal() {
+      forgotOverlay.classList.remove('show');
+    }
+
+    openForgotBtn?.addEventListener('click', openForgotModal);
+    cancelForgotBtn?.addEventListener('click', closeForgotModal);
+    doneForgotBtn?.addEventListener('click', closeForgotModal);
+
+    forgotOverlay?.addEventListener('click', (e) => {
+      if (e.target === forgotOverlay) closeForgotModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && forgotOverlay.classList.contains('show')) closeForgotModal();
+    });
+
+    forgotForm?.addEventListener('submit', handleForgotPassword);
   });
 </script>
 </body>

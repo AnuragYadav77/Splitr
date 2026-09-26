@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../services/email.service.js";
 
 
 // A small helper to generate both tokens for a user and save the refresh token
@@ -41,7 +43,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
     //1. Get user details from frontend
     // Extract the required fields from the request body
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, monthlyIncome, phoneNumber } = req.body;
 
 
     //2. Validation - not empty
@@ -56,7 +58,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     //3. Check if the user already exists: email
     // Search the database for an existing user with this email
     const existedUser = await User.findOne({
-        email
+        email: email.toLowerCase().trim()
     });
 
     // If a user with this email already exists, we stop right here
@@ -71,13 +73,13 @@ export const registerUser = asyncHandler(async (req, res) => {
 
 
     //4. Create user object - create entry in DB
-    // Create a new user in the database.
-    // Password hashing is handled automatically by the User model's
-    // pre-save middleware so we pass the plain text password here
+    // Create a new user in the database with their monthlyIncome if provided
     const user = await User.create({
-        fullName,
-        email,
-        password
+        fullName: fullName.trim(),
+        email: email.toLowerCase().trim(),
+        password,
+        phoneNumber: phoneNumber?.trim() || undefined,
+        monthlyIncome: monthlyIncome !== undefined ? Number(monthlyIncome) : 0
     });
 
 
@@ -108,6 +110,103 @@ export const registerUser = asyncHandler(async (req, res) => {
                 201,
                 createdUser,
                 "User registered successfully"
+            )
+        );
+});
+
+
+// FORGOT PASSWORD — GENERATES TOKEN & SENDS EMAIL
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Registered email is required");
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+        throw new ApiError(404, "No account found with this email address");
+    }
+
+    // Generate random 32-byte hex token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    // Save hashed token and expiry (30 mins)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 30 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    // Build reset URL
+    const protocol = req.protocol || "http";
+    const host = req.get("host") || "localhost:3000";
+    const resetUrl = `${protocol}://${host}/pages/reset-password.html?token=${rawToken}`;
+
+    // Send email
+    const emailResult = await sendPasswordResetEmail({
+        to: user.email,
+        resetUrl,
+        userName: user.fullName || "there"
+    });
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    resetUrl,
+                    previewUrl: emailResult.previewUrl
+                },
+                "A password reset link has been sent to your email address."
+            )
+        );
+});
+
+
+// RESET PASSWORD — VERIFIES TOKEN & SETS NEW PASSWORD
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { token, email, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+        throw new ApiError(400, "Password must be at least 8 characters long");
+    }
+
+    let user = null;
+
+    if (token) {
+        const hashedToken = crypto.createHash("sha256").update(token.trim()).digest("hex");
+        user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            throw new ApiError(400, "Password reset link is invalid or has expired. Please request a new one.");
+        }
+    } else if (email) {
+        user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            throw new ApiError(404, "No account found with this email address");
+        }
+    } else {
+        throw new ApiError(400, "Invalid reset request. Token is required.");
+    }
+
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Password has been reset successfully. You can now log in with your new password."
             )
         );
 });

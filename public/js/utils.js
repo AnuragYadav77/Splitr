@@ -304,6 +304,7 @@ export function errorState(msg = 'Something went wrong.') {
 export function renderSidebar(activePage) {
   const links = [
     { id: 'home',       href: '/pages/dashboard.html',          label: 'Home',               icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22' },
+    { id: 'payment',    href: '/pages/payment.html',            label: 'Scan & Pay',         icon: 'M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3zm2-9v3h3V5zm11 0v3h3V5zm0 11v3h3v-3zm-11 0v3h3v-3z' },
     { id: 'sections',   href: '/pages/sections.html',           label: 'Sections',            icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
     { id: 'activity',   href: '/pages/transactions.html',       label: 'Activity',            icon: 'M12 5v14M5 12h14' },
     { id: 'bills',      href: '/pages/bills.html',              label: 'Bills',               icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
@@ -314,9 +315,9 @@ export function renderSidebar(activePage) {
     { id: 'settings',   href: '/pages/settings.html',          label: 'Settings',            icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z' },
   ];
 
-  const mainLinks = links.slice(0, 4);   // Home, Sections, Activity, Bills
-  const moreLinks = links.slice(4, 8);   // Recurring, Savings, History, Notifications
-  const bottomLinks = links.slice(8);    // Settings
+  const mainLinks = links.slice(0, 5);   // Home, Scan & Pay, Sections, Activity, Bills
+  const moreLinks = links.slice(5, 9);   // Recurring, Savings, History, Notifications
+  const bottomLinks = links.slice(9);    // Settings
 
   function linkHtml(l) {
     const isActive = l.id === activePage;
@@ -332,7 +333,7 @@ export function renderSidebar(activePage) {
       <div class="sidebar-logo">
         <div class="sidebar-logo-mark">
           <div class="sidebar-logo-icon">
-            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <img src="/logo.png" alt="Splitr">
           </div>
           <span class="sidebar-logo-text">Splitr</span>
         </div>
@@ -356,6 +357,7 @@ export function renderBottomNav(activePage) {
   const items = [
     { id: 'home',     href: '/pages/dashboard.html',    label: 'Home',     icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22' },
     { id: 'sections', href: '/pages/sections.html',     label: 'Sections', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+    { id: 'payment',  href: '/pages/payment.html',      label: 'Scan & Pay', icon: 'M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3zm2-9v3h3V5zm11 0v3h3V5zm0 11v3h3v-3zm-11 0v3h3v-3z' },
     { id: 'activity', href: '/pages/transactions.html', label: 'Activity', icon: 'M12 5v14M5 12h14' },
     { id: 'more',     href: '/pages/settings.html',     label: 'More',     icon: 'M4 6h16M4 12h16M4 18h7' },
   ];
@@ -380,11 +382,14 @@ export function renderMobileHeader(userInitials = '?') {
     <header class="mobile-header">
       <div class="mobile-header-logo">
         <div class="mobile-header-logo-icon">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <img src="/logo.png" alt="Splitr">
         </div>
         <span class="mobile-header-logo-text">Splitr</span>
       </div>
       <div class="mobile-header-actions">
+        <a href="/pages/payment.html" class="icon-btn" aria-label="Scan & Pay with QR" title="Scan QR Code">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </a>
         <a href="/pages/notifications.html" class="icon-btn" aria-label="Notifications">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         </a>

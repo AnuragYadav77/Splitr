@@ -83,6 +83,63 @@ export async function logout() {
   navigate('/pages/login.html');
 }
 
+// ── Forgot Password (Email Link Flow) ──────────────────────────────
+
+export async function handleForgotPassword(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('[type="submit"]');
+  const errBox = form.querySelector('#forgot-form-error');
+  const emailInput = form.querySelector('#forgot-email');
+  const email = emailInput?.value.trim();
+
+  // Clear previous errors
+  if (errBox) { errBox.textContent = ''; errBox.classList.add('hidden'); }
+  form.querySelectorAll('.input-error-msg').forEach(el => { el.textContent = ''; el.classList.remove('show'); });
+
+  if (!email || !email.includes('@')) {
+    const el = form.querySelector('#err-forgot-email');
+    if (el) { el.textContent = 'Enter a valid registered email address.'; el.classList.add('show'); }
+    return;
+  }
+
+  btn.classList.add('btn-loading');
+
+  try {
+    const res = await api('POST', '/users/forgot-password', { email }, { noRefresh: true });
+    btn.classList.remove('btn-loading');
+
+    // Switch modal content to "Email Sent" confirmation view
+    const promptView = document.getElementById('forgot-prompt-view');
+    const sentView = document.getElementById('forgot-sent-view');
+    const sentEmailDisplay = document.getElementById('forgot-sent-email-display');
+    const devLinkWrap = document.getElementById('forgot-dev-link-wrap');
+    const devResetBtn = document.getElementById('forgot-dev-reset-btn');
+
+    if (sentEmailDisplay) sentEmailDisplay.textContent = email;
+
+    if (res?.resetUrl && devLinkWrap && devResetBtn) {
+      devResetBtn.href = res.resetUrl;
+      devLinkWrap.classList.remove('hidden');
+    }
+
+    if (promptView) promptView.classList.add('hidden');
+    if (sentView) sentView.classList.remove('hidden');
+
+    toast('Password reset email sent!', 'success');
+
+  } catch (err) {
+    btn.classList.remove('btn-loading');
+    const msg = err.message || 'Could not send reset email. Please check your email address.';
+    if (errBox) {
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    } else {
+      toast(msg, 'error');
+    }
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 
 function showError(form, fieldId, msg) {

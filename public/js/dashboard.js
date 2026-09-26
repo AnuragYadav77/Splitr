@@ -5,6 +5,9 @@ import {
   getGreeting, navigate, toast, errorState
 } from './utils.js';
 
+let cachedUser = null;
+let cachedSections = [];
+
 async function loadDashboard() {
   try {
     const [user, sections, txData, bills] = await Promise.all([
@@ -13,6 +16,9 @@ async function loadDashboard() {
       api('GET', '/transactions?limit=8').catch(() => []),
       api('GET', '/bills').catch(() => []),
     ]);
+
+    cachedUser = user;
+    cachedSections = sections || [];
 
     // Greeting
     const firstName = (user?.fullName || 'there').split(' ')[0];
@@ -38,6 +44,9 @@ async function loadDashboard() {
     // Bills
     renderBills(bills || []);
 
+    // Setup income modal listeners once
+    setupIncomeModal();
+
   } catch (e) {
     console.error('Dashboard error:', e);
     if (e.type !== 'auth') {
@@ -49,21 +58,27 @@ async function loadDashboard() {
 
 function renderSummary(user, sections) {
   const income    = user?.monthlyIncome || 0;
+  const isZero    = !income || income <= 0;
   const totalBudget = (sections || []).reduce((s, sec) => s + (sec.monthlyBudget || 0), 0);
   const totalSpent  = (sections || []).reduce((s, sec) => s + (sec.spent || 0), 0);
   const remaining   = (sections || []).reduce((s, sec) => s + getRemaining(sec.monthlyBudget, sec.spent), 0);
   const unallocated = Math.max(0, income - totalBudget);
 
   document.getElementById('summary-grid').innerHTML = `
-    <div class="summary-card">
-      <div class="summary-card-label">Monthly income</div>
+    <div class="summary-card" id="card-monthly-income" role="button" tabindex="0" title="Click to set or change monthly income" style="cursor:pointer;position:relative;transition:all 0.2s ease;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div class="summary-card-label" style="margin-bottom:0;">Monthly income</div>
+        <span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;background:${isZero ? 'var(--amber-100)' : 'var(--indigo-50)'};color:${isZero ? 'var(--amber-600)' : 'var(--indigo-600)'};display:inline-flex;align-items:center;gap:3px;">
+          ${isZero ? '⚠️ Set income' : 'Edit ✏️'}
+        </span>
+      </div>
       <div class="summary-card-value">${formatINR(income)}</div>
-      <div class="summary-card-sub">This month</div>
+      <div class="summary-card-sub">${isZero ? 'Click to configure your income' : 'This month'}</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">Allocated</div>
       <div class="summary-card-value">${formatINR(totalBudget)}</div>
-      <div class="summary-card-sub">${formatINR(unallocated)} unallocated</div>
+      <div class="summary-card-sub">${income > 0 ? `${formatINR(unallocated)} unallocated` : 'Across all sections'}</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">Spent</div>
@@ -76,6 +91,99 @@ function renderSummary(user, sections) {
       <div class="summary-card-sub">Across all sections</div>
     </div>
   `;
+
+  // Attach click listener to monthly income card
+  const incomeCard = document.getElementById('card-monthly-income');
+  if (incomeCard) {
+    incomeCard.addEventListener('click', openIncomeModal);
+    incomeCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openIncomeModal();
+      }
+    });
+  }
+}
+
+function openIncomeModal() {
+  const overlay = document.getElementById('dashboard-income-overlay');
+  const input = document.getElementById('dash-inc-amount');
+  const errEl = document.getElementById('dash-inc-error');
+  if (!overlay || !input) return;
+
+  input.value = cachedUser?.monthlyIncome || '';
+  if (errEl) errEl.textContent = '';
+  overlay.classList.add('show');
+  setTimeout(() => input.focus(), 250);
+}
+
+function closeIncomeModal() {
+  const overlay = document.getElementById('dashboard-income-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+let incomeModalInitialized = false;
+function setupIncomeModal() {
+  if (incomeModalInitialized) return;
+  incomeModalInitialized = true;
+
+  const overlay = document.getElementById('dashboard-income-overlay');
+  const cancelBtn = document.getElementById('btn-dash-inc-cancel');
+  const saveBtn = document.getElementById('btn-dash-inc-save');
+  const input = document.getElementById('dash-inc-amount');
+  const errEl = document.getElementById('dash-inc-error');
+
+  if (cancelBtn) cancelBtn.addEventListener('click', closeIncomeModal);
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeIncomeModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay?.classList.contains('show')) {
+      closeIncomeModal();
+    }
+  });
+
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveBtn?.click();
+      }
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const incomeVal = Number(input.value);
+      if (!incomeVal || incomeVal <= 0) {
+        if (errEl) errEl.textContent = 'Please enter a valid monthly income greater than 0.';
+        return;
+      }
+      if (errEl) errEl.textContent = '';
+
+      saveBtn.classList.add('btn-loading');
+      try {
+        const updated = await api('PATCH', '/users/update-profile', { monthlyIncome: incomeVal });
+        if (cachedUser) {
+          cachedUser.monthlyIncome = incomeVal;
+        } else {
+          cachedUser = updated;
+        }
+        renderSummary(cachedUser, cachedSections);
+        renderInsight(cachedUser, cachedSections);
+        closeIncomeModal();
+        toast('Monthly income updated successfully!', 'success');
+      } catch (err) {
+        if (errEl) errEl.textContent = err.message || 'Could not update monthly income.';
+      } finally {
+        saveBtn.classList.remove('btn-loading');
+      }
+    });
+  }
 }
 
 function renderSections(sections) {

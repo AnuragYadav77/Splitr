@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — One account. Different sections. More control.</title>
   <meta name="description" content="Split your monthly money into sections and know exactly how much you can spend — before or the moment you spend.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     body { background: var(--bg-page); }
@@ -23,11 +24,12 @@
     .onboard-nav-logo { display: flex; align-items: center; gap: 8px; }
     .onboard-nav-logo-icon {
       width: 28px; height: 28px;
-      background: var(--indigo-600);
-      border-radius: 8px;
+      border-radius: 7px;
+      overflow: hidden;
       display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    .onboard-nav-logo-icon svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .onboard-nav-logo-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .onboard-nav-logo-text { font-size: 15px; font-weight: 700; color: var(--n-900); }
     .onboard-nav-actions { display: flex; align-items: center; gap: 8px; }
   </style>
@@ -38,7 +40,7 @@
   <nav class="onboard-nav" aria-label="Site navigation">
     <div class="onboard-nav-logo">
       <div class="onboard-nav-logo-icon">
-        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <img src="/logo.png" alt="Splitr">
       </div>
       <span class="onboard-nav-logo-text">Splitr</span>
     </div>

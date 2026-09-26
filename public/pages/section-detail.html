@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — Section Detail</title>
   <meta name="description" content="View spending details and transaction history for this section.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -104,7 +105,9 @@
 
     <div class="input-group">
       <label class="input-label" for="edit-emoji">Icon (emoji)</label>
-      <input type="text" id="edit-emoji" class="input" maxlength="4" style="font-size:20px;">
+      <input type="hidden" id="edit-emoji" value="">
+      <div id="edit-emoji-dropdown"></div>
+      <div class="input-hint">Choose an emoji icon from the dropdown menu</div>
     </div>
 
     <div class="input-group">
@@ -150,10 +153,12 @@
     api, formatINR, timeAgo, sectionColour,
     getRemaining, getPctSpent, navigate, toast
   } from '/js/utils.js';
+  import { setupEmojiDropdown } from '/js/emoji-picker.js';
 
   const params = new URLSearchParams(location.search);
   const sectionId = params.get('id');
   let section = null;
+  let editEmojiPicker = null;
 
   if (!sectionId) navigate('/pages/sections.html');
 
@@ -168,6 +173,16 @@
       section = sec;
       renderHero(sec);
       renderTransactions(txData || []);
+
+      if (!editEmojiPicker) {
+        editEmojiPicker = setupEmojiDropdown({
+          container: '#edit-emoji-dropdown',
+          input: '#edit-emoji',
+          defaultEmoji: sec.emoji || '📦'
+        });
+      } else {
+        editEmojiPicker.setEmoji(sec.emoji || '📦');
+      }
     } catch (e) {
       if (e.type !== 'auth') {
         document.getElementById('section-loading').innerHTML = '<div class="error-state"><div class="error-state-title">Could not load section.</div><button class="btn btn-secondary" onclick="location.reload()">Try again</button></div>';
@@ -248,6 +263,7 @@
     if (!section) return;
     document.getElementById('edit-name').value   = section.name;
     document.getElementById('edit-emoji').value  = section.emoji || '';
+    editEmojiPicker?.setEmoji(section.emoji || '📦');
     document.getElementById('edit-budget').value = section.monthlyBudget;
     document.getElementById('edit-overlay').classList.add('show');
   });

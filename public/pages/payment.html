@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — Pay</title>
   <meta name="description" content="Log a payment — see how it affects your section before confirming.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     .pay-step { display: none; }
@@ -58,29 +59,126 @@
           Back
         </button>
 
-        <h1 class="page-title" id="step-title" style="margin-bottom:24px;">Log a payment</h1>
+        <h1 class="page-title" id="step-title" style="margin-bottom:18px;">Log a payment</h1>
 
-        <!-- STEP 1: Merchant + Amount -->
-        <div class="pay-step active" id="pstep-1">
-          <div class="input-group">
-            <label class="input-label" for="inp-merchant">Who did you pay?</label>
-            <input type="text" id="inp-merchant" class="input" placeholder="e.g. Swiggy, Uber, DMart" autocomplete="off" maxlength="80">
-            <div class="input-error-msg" id="err-merchant"></div>
-          </div>
-
-          <div class="input-group">
-            <label class="input-label" style="text-align:center;display:block;">Amount</label>
-            <div class="amount-input-wrap">
-              <span class="amount-prefix">₹</span>
-              <input type="number" id="inp-amount" placeholder="0" min="0.01" step="0.01" inputmode="decimal">
-            </div>
-            <div class="input-error-msg" id="err-amount"></div>
-          </div>
-
-          <button class="btn btn-primary btn-full btn-lg" id="btn-p1-next" style="margin-top:8px;">
-            Choose section
-            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        <!-- Mode Switcher -->
+        <div class="tabs" style="margin-bottom:18px;display:flex;background:var(--n-100);padding:4px;border-radius:var(--r-md);gap:4px;" id="mode-tabs">
+          <button type="button" class="tab-btn active" id="tab-scan-qr" style="flex:1;padding:9px 12px;border:none;border-radius:var(--r-sm);font-weight:600;font-size:13px;cursor:pointer;background:var(--bg-card);color:var(--indigo-600);box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Scan UPI QR
           </button>
+          <button type="button" class="tab-btn" id="tab-manual-entry" style="flex:1;padding:9px 12px;border:none;border-radius:var(--r-sm);font-weight:500;font-size:13px;cursor:pointer;background:transparent;color:var(--n-500);display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Manual Entry
+          </button>
+        </div>
+
+        <!-- STEP 1: QR Scanner + Merchant + Amount -->
+        <div class="pay-step active" id="pstep-1">
+
+          <!-- QR SCANNER CONTAINER -->
+          <div id="qr-scanner-section">
+            <div class="qr-scanner-card">
+              <div class="qr-scanner-header">
+                <div class="qr-scanner-title">
+                  <div class="qr-scanner-title-pulse"></div>
+                  <span>UPI QR Scanner</span>
+                </div>
+                <button type="button" class="qr-ctrl-btn" id="btn-switch-camera" title="Flip camera">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
+                  <span>Flip</span>
+                </button>
+              </div>
+
+              <!-- Camera Viewfinder -->
+              <div class="qr-viewfinder-wrap">
+                <div id="qr-reader" style="width:100%;height:100%;min-height:280px;"></div>
+                <div class="qr-viewfinder-box" id="qr-box-guide">
+                  <div class="qr-corner qr-corner-tl"></div>
+                  <div class="qr-corner qr-corner-tr"></div>
+                  <div class="qr-corner qr-corner-bl"></div>
+                  <div class="qr-corner qr-corner-br"></div>
+                  <div class="qr-laser-line"></div>
+                </div>
+                <div class="qr-status-badge" id="qr-status-text">Align any UPI QR code within frame</div>
+              </div>
+
+              <!-- Scanner bottom toolbar -->
+              <div class="qr-scanner-controls">
+                <button type="button" class="qr-ctrl-btn" id="btn-upload-qr">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  <span>Upload QR Image</span>
+                </button>
+                <input type="file" id="qr-file-input" accept="image/*" style="display:none;">
+
+                <button type="button" class="qr-ctrl-btn" id="btn-toggle-torch">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  <span>Torch</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Test Sample QR codes -->
+            <div class="qr-sample-presets">
+              <div class="qr-sample-presets-title">⚡ Quick test — Simulate scanning a UPI QR:</div>
+              <div class="qr-sample-chips">
+                <button type="button" class="qr-sample-chip" data-merchant="Swiggy" data-amount="320">
+                  <span>🍔</span> Swiggy (₹320)
+                </button>
+                <button type="button" class="qr-sample-chip" data-merchant="Starbucks Coffee" data-amount="280">
+                  <span>☕</span> Starbucks (₹280)
+                </button>
+                <button type="button" class="qr-sample-chip" data-merchant="Uber India" data-amount="190">
+                  <span>🚗</span> Uber (₹190)
+                </button>
+                <button type="button" class="qr-sample-chip" data-merchant="DMart Ready" data-amount="1250">
+                  <span>🛒</span> DMart (₹1,250)
+                </button>
+                <button type="button" class="qr-sample-chip" data-merchant="BookMyShow" data-amount="480">
+                  <span>🎬</span> BookMyShow (₹480)
+                </button>
+                <button type="button" class="qr-sample-chip" data-merchant="Apollo Pharmacy" data-amount="180">
+                  <span>💊</span> Apollo (₹180)
+                </button>
+              </div>
+            </div>
+
+            <div style="text-align:center;margin:18px 0 10px;">
+              <span style="font-size:12px;color:var(--n-400);">or enter payment manually below</span>
+            </div>
+          </div>
+
+          <!-- MANUAL ENTRY FORM -->
+          <div id="manual-entry-section">
+            <div class="input-group">
+              <label class="input-label" for="inp-merchant">Who did you pay?</label>
+              <input type="text" id="inp-merchant" class="input" placeholder="e.g. Swiggy, Uber, DMart" autocomplete="off" maxlength="80">
+              <div class="input-error-msg" id="err-merchant"></div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" style="text-align:center;display:block;">Amount</label>
+              <div class="amount-input-wrap">
+                <span class="amount-prefix">₹</span>
+                <input type="number" id="inp-amount" placeholder="0" min="0.01" step="0.01" inputmode="decimal">
+              </div>
+              <div class="input-error-msg" id="err-amount"></div>
+            </div>
+
+            <button class="btn btn-primary btn-full btn-lg" id="btn-p1-next" style="margin-top:8px;">
+              Choose section
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
         </div>
 
         <!-- STEP 2: Choose Section -->
@@ -158,6 +256,7 @@
 </div>
 
 <div id="toast-container"></div>
+<script src="/js/html5-qrcode.min.js"></script>
 <script type="module" src="/js/app.js"></script>
 <script type="module" src="/js/payment.js"></script>
 </body>

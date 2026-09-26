@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — Dashboard</title>
   <meta name="description" content="Your budget dashboard — track sections, spending, and remaining balances.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -23,10 +24,23 @@
     <div class="page-wrap">
       <div class="page-inner page-enter">
 
-        <!-- Greeting -->
-        <div style="margin-bottom:24px;">
-          <h1 class="page-title" id="greeting">Good evening</h1>
-          <div class="page-subtitle" id="today-date"></div>
+        <!-- Greeting & Quick Actions -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+          <div>
+            <h1 class="page-title" id="greeting">Good evening</h1>
+            <div class="page-subtitle" id="today-date"></div>
+          </div>
+          <a href="/pages/payment.html" class="btn btn-primary" id="btn-scan-pay" style="display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(79,70,229,0.22);font-weight:600;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+              <line x1="7" y1="17" x2="7.01" y2="17"></line>
+              <line x1="17" y1="7" x2="17.01" y2="7"></line>
+            </svg>
+            <span>Scan &amp; Pay</span>
+          </a>
         </div>
 
         <!-- Monthly Summary -->
@@ -101,6 +115,30 @@
   <!-- Bottom nav (mobile) -->
   <div id="bottom-nav-container"></div>
 
+</div>
+
+<!-- Edit Monthly Income Modal -->
+<div class="overlay" id="dashboard-income-overlay" role="dialog" aria-modal="true" aria-labelledby="income-modal-title">
+  <div class="bottom-sheet">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-title" id="income-modal-title">Monthly income</div>
+    <div class="sheet-subtitle">Set your total monthly income to track unallocated funds and savings.</div>
+
+    <div class="input-group">
+      <label class="input-label" for="dash-inc-amount">Income amount</label>
+      <div class="input-prefix-wrap">
+        <span class="input-prefix">₹</span>
+        <input type="number" id="dash-inc-amount" class="input" placeholder="e.g. 50,000" min="1" inputmode="numeric">
+      </div>
+      <div class="input-hint">Your monthly take-home income</div>
+      <div class="input-error-msg" id="dash-inc-error"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" id="btn-dash-inc-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="btn-dash-inc-save" style="flex:2;">Save income</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast-container"></div>

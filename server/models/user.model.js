@@ -32,6 +32,12 @@ const userSchema = new Schema({
     refreshToken:{
         type:String
     },
+    resetPasswordToken:{
+        type:String
+    },
+    resetPasswordExpires:{
+        type:Date
+    },
     savings:{
         balance:{
             type:Number,

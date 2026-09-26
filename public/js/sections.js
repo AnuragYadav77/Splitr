@@ -3,9 +3,11 @@ import {
   api, formatINR, sectionColour, getRemaining, getPctSpent,
   navigate, toast, errorState
 } from './utils.js';
+import { setupEmojiDropdown } from './emoji-picker.js';
 
 let sections = [];
 let userIncome = 0;
+let emojiPicker = null;
 
 async function load() {
   try {
@@ -93,10 +95,21 @@ function renderAllocationBar() {
 
 // ── Add Section Modal ─────────────────────────────────────────────
 
+function initPickerIfNeeded() {
+  if (!emojiPicker) {
+    emojiPicker = setupEmojiDropdown({
+      container: '#sec-emoji-dropdown',
+      input: '#inp-sec-emoji',
+      defaultEmoji: '🍔'
+    });
+  }
+}
+
 function openModal() {
+  initPickerIfNeeded();
   document.getElementById('inp-sec-name').value = '';
-  document.getElementById('inp-sec-emoji').value = '';
   document.getElementById('inp-sec-budget').value = '';
+  emojiPicker?.setEmoji('🍔');
   clearErrors();
   document.getElementById('add-section-overlay').classList.add('show');
   setTimeout(() => document.getElementById('inp-sec-name').focus(), 300);
@@ -118,7 +131,7 @@ function clearErrors() {
 async function createSection() {
   clearErrors();
   const name   = document.getElementById('inp-sec-name').value.trim();
-  const emoji  = document.getElementById('inp-sec-emoji').value.trim();
+  const emoji  = document.getElementById('inp-sec-emoji').value.trim() || '🍔';
   const budget = Number(document.getElementById('inp-sec-budget').value);
 
   let valid = true;
@@ -161,6 +174,7 @@ function showErr(id, msg) {
 // ── Events ───────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  initPickerIfNeeded();
   document.getElementById('btn-add-section').addEventListener('click', openModal);
   document.getElementById('btn-sec-cancel').addEventListener('click', closeModal);
   document.getElementById('btn-sec-create').addEventListener('click', createSection);

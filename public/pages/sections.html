@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Splitr — Sections</title>
   <meta name="description" content="Manage your budget sections — see remaining budgets and spending progress.">
+  <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -69,8 +70,9 @@
 
     <div class="input-group">
       <label class="input-label" for="inp-sec-emoji">Icon (emoji)</label>
-      <input type="text" id="inp-sec-emoji" class="input" placeholder="Paste an emoji" maxlength="4" style="font-size:20px;" value="">
-      <div class="input-hint">Paste any emoji from your keyboard</div>
+      <input type="hidden" id="inp-sec-emoji" value="🍔">
+      <div id="sec-emoji-dropdown"></div>
+      <div class="input-hint">Choose an emoji icon from the dropdown menu</div>
     </div>
 
     <div class="input-group">

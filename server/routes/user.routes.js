@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
     registerUser,
     loginUser,
+    forgotPassword,
+    resetPassword,
     logoutUser,
     refreshAccessToken,
     getCurrentUser,
@@ -14,6 +16,8 @@ const router = Router();
 // Public routes — no auth needed for these
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password").post(resetPassword);
 
 // Refresh token route doesn't need verifyJWT because it uses the refresh token
 // to issue new tokens when the access token has already expired
